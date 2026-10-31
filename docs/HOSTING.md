@@ -6,18 +6,42 @@ This guide provides clear, step-by-step instructions on how to host your own **S
 
 ## Quick Navigation
 
-- [⭐ Top Recommendation: Render (Free & Fast)](#-top-recommendation-render-free--fast)
+- [⭐ Top Recommendation: Vercel (Multi-Service Project)](#-top-recommendation-vercel-multi-service-project)
+- [Alternative 1: Render (Free & Fast Blueprint)](#alternative-1-render-free--fast-blueprint)
   - [Method 1: 1-Click Blueprint (Easiest)](#method-1-1-click-blueprint-easiest)
   - [Method 2: Manual Web Service Setup](#method-2-manual-web-service-setup)
-- [Alternative 1: Railway](#alternative-1-railway)
-- [Alternative 2: Self-Hosted VPS (Docker / Ubuntu)](#alternative-2-self-hosted-vps-docker--ubuntu)
+- [Alternative 2: Railway](#alternative-2-railway)
+- [Alternative 3: Self-Hosted VPS (Docker / Ubuntu)](#alternative-3-self-hosted-vps-docker--ubuntu)
 - [Testing Your Deployed Server](#testing-your-deployed-server)
 - [Connecting the Flutter App to Your Server](#connecting-the-flutter-app-to-your-server)
 - [Troubleshooting & FAQs](#troubleshooting--faqs)
 
 ---
 
-## ⭐ Top Recommendation: Render (Free & Fast)
+## ⭐ Top Recommendation: Vercel (Multi-Service Project)
+
+[Vercel](https://vercel.com) supports multi-service repositories via [`vercel.json`](../vercel.json), deploying both the **Next.js Web Client** and the **Socket.IO backend container** as a unified project under a single domain.
+
+### Key Benefits:
+- **Single Domain**: Frontend and backend live under `your-app.vercel.app` with zero cross-origin (CORS) friction.
+- **Direct Edge Routing**: WebSockets and Socket.IO handshakes on `/socket.io/*` route directly to the backend container.
+- **Service Bindings**: Next.js server components and API routes securely communicate with the backend using the internal `SERVER_URL` binding.
+
+### Deployment Steps:
+1. Log in to [vercel.com](https://vercel.com) with GitHub.
+2. Click **Add New...** > **Project** and select your `Sus` repository.
+3. Vercel automatically detects the multi-service layout from `vercel.json`:
+   - Service `server`: root `server`, runtime `container`.
+   - Service `web`: root `web`, framework `nextjs`.
+4. Click **Deploy**.
+5. To run the full stack locally with simulated service bindings:
+   ```bash
+   vercel dev
+   ```
+
+---
+
+## Alternative 1: Render (Free & Fast Blueprint)
 
 [Render](https://render.com) is our **#1 recommended platform** to host the Sus server because:
 - **Free Tier**: You can run the server at zero cost.

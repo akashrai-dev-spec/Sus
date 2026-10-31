@@ -6,7 +6,7 @@ import { registerSocketHandlers } from "./socket/handlers.js";
 import { logger } from "./util/logger.js";
 
 const server = http.createServer((req, res) => {
-  if (req.url === "/health") {
+  if (req.url === "/health" || req.url === "/api/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "ok", version: config.protocolVersion }));
     return;
