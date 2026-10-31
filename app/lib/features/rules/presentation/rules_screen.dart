@@ -15,44 +15,6 @@ class RulesScreen extends ConsumerWidget {
     final colors = context.colors;
     final profile = ref.watch(userProfileProvider);
 
-    final rules = [
-      (
-        '1',
-        'Swipe to confirm',
-        'Slide the crimson bars to the right to confirm an action. This deliberate gesture prevents accidental taps during intense party moments.',
-      ),
-      (
-        '2',
-        'Hidden roles',
-        'Each round secretly assigns 1 to 3 imposters. Everyone else is a normal player. The room is locked with a 4-digit PIN.',
-      ),
-      (
-        '3',
-        'The secret word',
-        'Normal players see the secret word. The imposter sees only the category. The imposter must bluff and blend in.',
-      ),
-      (
-        '4',
-        'Turn-based clues',
-        'Players take turns in a fixed speaking order giving one clue about the word. Nobody may say the secret word itself.',
-      ),
-      (
-        '5',
-        'Immediate accusation',
-        'Instead of shouting, any alive player with an unused accusation can press Accuse. The game pauses and the accused role is dramatically revealed. If they are an imposter, they are out. If normal, the accuser loses their accusation.',
-      ),
-      (
-        '6',
-        'Imposter word guess',
-        'At any time, an imposter can attempt to guess the secret word. A correct guess means the imposters win immediately!',
-      ),
-      (
-        '7',
-        'The final vote',
-        'After all discussion rounds conclude, the group conducts a final vote. A wrong final accusation means the imposter wins.',
-      ),
-    ];
-
     return Scaffold(
       appBar: AppHeader(
         playerName: profile.name,
@@ -66,95 +28,315 @@ class RulesScreen extends ConsumerWidget {
               'How Sus works',
               style: SusTypography.title.copyWith(color: colors.bone),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
-              'Master the rules of deception, deductions, and wordplay.',
+              'One word. One imposter. Can you spot the fake?',
               style: SusTypography.body.copyWith(color: colors.mute),
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: ListView.separated(
-                itemCount: rules.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final (num, title, desc) = rules[index];
-
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: colors.panel,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: colors.line, width: 1.5),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Roles Split Card
+                    Row(
                       children: [
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: colors.crimson,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              num,
-                              style: SusTypography.caption.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
+                        // Normal Role Card
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: colors.panel,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: colors.win.withValues(alpha: 0.6),
+                                width: 1.5,
                               ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: colors.win,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'NORMALS',
+                                      style: SusTypography.caption.copyWith(
+                                        color: colors.win,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.8,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Know the word',
+                                  style: SusTypography.body.copyWith(
+                                    color: colors.bone,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Give clues that prove you know it without giving it away.',
+                                  style: SusTypography.caption.copyWith(
+                                    color: colors.mute,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                        const SizedBox(width: 14),
+                        const SizedBox(width: 10),
+                        // Imposter Role Card
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                title,
-                                style: SusTypography.body.copyWith(
-                                  color: colors.bone,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: colors.panel,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: colors.crimsonBright.withValues(alpha: 0.6),
+                                width: 1.5,
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                desc,
-                                style: SusTypography.caption.copyWith(
-                                  color: colors.mute,
-                                  height: 1.4,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: colors.crimsonBright,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'IMPOSTER',
+                                      style: SusTypography.caption.copyWith(
+                                        color: colors.crimsonBright,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.8,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Only category',
+                                  style: SusTypography.body.copyWith(
+                                    color: colors.bone,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Bluff your clues, listen to others, and guess the word.',
+                                  style: SusTypography.caption.copyWith(
+                                    color: colors.mute,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  );
-                },
+
+                    const SizedBox(height: 20),
+
+                    // Stage 1
+                    _buildStepCard(
+                      colors: colors,
+                      step: '1',
+                      icon: Icons.lock_outline_rounded,
+                      title: 'Secret word distribution',
+                      desc:
+                          'When the match starts, players secretly inspect their role card. Normal players receive the secret word (e.g. Pizza). The imposter sees only the category (e.g. Objects & Food).',
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Stage 2
+                    _buildStepCard(
+                      colors: colors,
+                      step: '2',
+                      icon: Icons.record_voice_over_rounded,
+                      title: 'The clue round',
+                      desc:
+                          'Players take turns in a randomized speaking order giving one clue out loud. You can say anything, but saying the secret word itself is strictly forbidden!',
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Stage 3
+                    _buildStepCard(
+                      colors: colors,
+                      step: '3',
+                      icon: Icons.gavel_rounded,
+                      title: 'Sudden-death accusations',
+                      desc:
+                          'Notice someone bluffing? Hit Accuse! The game pauses and their identity is revealed. Catch an imposter and they are eliminated. Make a false call and you lose your accusation permanently.',
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Stage 4
+                    _buildStepCard(
+                      colors: colors,
+                      step: '4',
+                      icon: Icons.psychology_rounded,
+                      title: 'The imposter guess',
+                      desc:
+                          'If an imposter decodes the secret word from everyone’s clues, they can attempt a guess. Guessing correctly triggers an immediate, dramatic imposter victory!',
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Stage 5
+                    _buildStepCard(
+                      colors: colors,
+                      step: '5',
+                      icon: Icons.flag_rounded,
+                      title: 'The final vote',
+                      desc:
+                          'If all discussion rounds finish and the imposter survives, the group makes one final accusation. Guess wrong, and the imposter wins the match.',
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Pro-tip card
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: colors.panel.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: colors.line, width: 1.2),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.lightbulb_rounded, color: colors.crimsonBright, size: 22),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Pro Tip',
+                                  style: SusTypography.body.copyWith(
+                                    color: colors.bone,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'If your clue is too obvious, the imposter will steal the word. If your clue is too vague, the room will suspect you. Balance is everything.',
+                                  style: SusTypography.caption.copyWith(
+                                    color: colors.mute,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             ElevatedButton(
               onPressed: () => context.pop(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.crimson,
+                foregroundColor: Colors.white,
                 minimumSize: const Size.fromHeight(52),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
               child: Text(
-                'Got it',
+                'Got it, let’s play',
                 style: SusTypography.body.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ),
+            const SizedBox(height: 8),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStepCard({
+    required SusColors colors,
+    required String step,
+    required IconData icon,
+    required String title,
+    required String desc,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.panel,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.line, width: 1.5),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: colors.crimson.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colors.crimson.withValues(alpha: 0.4), width: 1),
+            ),
+            child: Icon(icon, color: colors.crimsonBright, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: SusTypography.body.copyWith(
+                    color: colors.bone,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  desc,
+                  style: SusTypography.caption.copyWith(
+                    color: colors.mute,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

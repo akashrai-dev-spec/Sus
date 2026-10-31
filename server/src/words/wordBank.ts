@@ -25,7 +25,25 @@ export function getCategories(): string[] {
   return Object.keys(bank);
 }
 
-export function pickSecretWord(categorySetting: string): { category: string; word: string } {
+export function pickSecretWord(
+  categorySetting: string,
+  customWord?: string,
+  customCategory?: string
+): { category: string; word: string } {
+  if (
+    categorySetting === "Custom" &&
+    customWord &&
+    customWord.trim().length > 0
+  ) {
+    return {
+      category:
+        customCategory && customCategory.trim().length > 0
+          ? customCategory.trim()
+          : "Custom",
+      word: customWord.trim(),
+    };
+  }
+
   const bank = loadWordBank();
   const availableCategories = Object.keys(bank);
 

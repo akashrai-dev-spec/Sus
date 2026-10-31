@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { GameEngine, GameEngineError } from "../src/game/gameEngine.js";
 import { GamePlayer, GameSettings } from "../src/game/types.js";
 import { WordFilter } from "../src/util/wordFilter.js";
+import { pickSecretWord } from "../src/words/wordBank.js";
 
 const FIXTURES_DIR = path.resolve(__dirname, "../../docs/fixtures");
 
@@ -376,5 +377,15 @@ describe("Shared Fixture Replays", () => {
       const res = WordFilter.containsSecretWord(t.clue, t.secretWord);
       expect(res).toBe(t.expectedForbidden);
     }
+  });
+
+  it("supports custom words and categories", () => {
+    const res = pickSecretWord("Custom", "Everest", "Mountains");
+    expect(res.category).toBe("Mountains");
+    expect(res.word).toBe("Everest");
+
+    const res2 = pickSecretWord("Custom", "Kathmandu");
+    expect(res2.category).toBe("Custom");
+    expect(res2.word).toBe("Kathmandu");
   });
 });

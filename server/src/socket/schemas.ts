@@ -12,6 +12,8 @@ export const gameSettingsSchema = z.object({
   rounds: z.number().int().min(1).max(3).default(2),
   guessAttempts: z.number().int().min(1).max(2).default(1),
   category: z.string().default("Random"),
+  customWord: z.string().trim().max(50).optional(),
+  customCategory: z.string().trim().max(50).optional(),
 });
 
 export const roomsCreateSchema = z.object({

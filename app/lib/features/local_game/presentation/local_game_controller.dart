@@ -63,17 +63,29 @@ class LocalGameNotifier extends StateNotifier<LocalGameProgress?> {
     required int rounds,
     required int guessAttempts,
     required String category,
+    String? customWord,
+    String? customCategory,
   }) async {
     await _ensureWordBankLoaded();
 
-    final categories = _cachedWordBank!.keys.toList();
-    final chosenCategory = category == 'Random' || !_cachedWordBank!.containsKey(category)
-        ? categories[math.Random().nextInt(categories.length)]
-        : category;
+    final String chosenCategory;
+    final String chosenWord;
 
-    final wordsMap = _cachedWordBank![chosenCategory] as Map<String, dynamic>;
-    final words = wordsMap.keys.toList();
-    final chosenWord = words[math.Random().nextInt(words.length)];
+    if (category == 'Custom' && customWord != null && customWord.trim().isNotEmpty) {
+      chosenCategory = (customCategory != null && customCategory.trim().isNotEmpty)
+          ? customCategory.trim()
+          : 'Custom';
+      chosenWord = customWord.trim();
+    } else {
+      final categories = _cachedWordBank!.keys.toList();
+      chosenCategory = category == 'Random' || !_cachedWordBank!.containsKey(category)
+          ? categories[math.Random().nextInt(categories.length)]
+          : category;
+
+      final wordsMap = _cachedWordBank![chosenCategory] as Map<String, dynamic>;
+      final words = wordsMap.keys.toList();
+      chosenWord = words[math.Random().nextInt(words.length)];
+    }
 
     final players = playerNames.asMap().entries.map((e) {
       final i = e.key;

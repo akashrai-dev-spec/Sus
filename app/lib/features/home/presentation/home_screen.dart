@@ -25,130 +25,52 @@ class HomeScreen extends ConsumerWidget {
         playerName: profile.name,
         playerColorHex: profile.color,
       ),
-      body: Stack(
-        children: [
-          // Ambient background glow centered behind the mask
-          Positioned(
-            top: 60,
-            left: 0,
-            right: 0,
-            height: 280,
-            child: Center(
-              child: Container(
-                width: 240,
-                height: 240,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      colors.crimson.withValues(alpha: 0.28),
-                      colors.crimson.withValues(alpha: 0.08),
-                      Colors.transparent,
-                    ],
-                    stops: const [0.0, 0.55, 1.0],
-                  ),
-                ),
+      body: ContentColumn(
+        child: Column(
+          children: [
+            const Spacer(flex: 2),
+
+            // Large Oni Mask Centerpiece (no circle)
+            Center(
+              child: OniMask(
+                size: 156,
+                color: colors.crimson,
               ),
-            ),
-          ),
+            )
+                .animate()
+                .fadeIn(duration: 450.ms, curve: Curves.easeOut)
+                .scale(
+                  begin: const Offset(0.92, 0.92),
+                  end: const Offset(1, 1),
+                  duration: 450.ms,
+                  curve: Curves.easeOutCubic,
+                ),
 
-          ContentColumn(
-            child: Column(
-              children: [
-                const Spacer(flex: 2),
+            const SizedBox(height: 28),
 
-                // Centerpiece Mask with subtle breathing glow
-                Center(
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        width: 148,
-                        height: 148,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: colors.panel.withValues(alpha: 0.5),
-                          border: Border.all(
-                            color: colors.line.withValues(alpha: 0.6),
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                      OniMask(
-                        size: 104,
-                        color: colors.crimson,
-                      ),
-                    ],
-                  ),
-                )
-                    .animate()
-                    .fadeIn(duration: 450.ms, curve: Curves.easeOut)
-                    .scale(
-                      begin: const Offset(0.92, 0.92),
-                      end: const Offset(1, 1),
-                      duration: 450.ms,
-                      curve: Curves.easeOutCubic,
-                    ),
+            // Main Tagline
+            Text(
+              'One word.\nOne imposter.',
+              style: SusTypography.display.copyWith(
+                color: colors.bone,
+                height: 1.12,
+                letterSpacing: -0.5,
+              ),
+              textAlign: TextAlign.center,
+            ).animate().fadeIn(delay: 150.ms, duration: 400.ms),
 
-                const SizedBox(height: 24),
+            const SizedBox(height: 12),
 
-                // Audience & Genre pill badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: colors.panel,
-                    borderRadius: BorderRadius.circular(99),
-                    border: Border.all(color: colors.line, width: 1.2),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: colors.crimsonBright,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '3 to 12 players',
-                        style: SusTypography.caption.copyWith(
-                          color: colors.mute,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ).animate().fadeIn(delay: 150.ms, duration: 400.ms),
-
-                const SizedBox(height: 14),
-
-                // Main Tagline
-                Text(
-                  'One word.\nOne imposter.',
-                  style: SusTypography.display.copyWith(
-                    color: colors.bone,
-                    height: 1.12,
-                    letterSpacing: -0.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
-
-                const SizedBox(height: 10),
-
-                // Subtitle description
-                Text(
-                  'Normal players know the secret word.\nThe imposter bluffs to survive.',
-                  style: SusTypography.body.copyWith(
-                    color: colors.mute,
-                    fontSize: 15,
-                    height: 1.35,
-                  ),
-                  textAlign: TextAlign.center,
-                ).animate().fadeIn(delay: 250.ms, duration: 400.ms),
+            // Subtitle description
+            Text(
+              'Normal players know the secret word.\nThe imposter bluffs to survive.',
+              style: SusTypography.body.copyWith(
+                color: colors.mute,
+                fontSize: 15,
+                height: 1.35,
+              ),
+              textAlign: TextAlign.center,
+            ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
 
                 const Spacer(flex: 3),
 
@@ -230,8 +152,6 @@ class HomeScreen extends ConsumerWidget {
               ],
             ),
           ),
-        ],
-      ),
     );
   }
 }
