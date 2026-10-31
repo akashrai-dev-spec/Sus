@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Lock, Plus, Users, RefreshCw, AlertCircle } from "lucide-react";
@@ -26,20 +26,20 @@ export default function RoomsPage() {
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
-  const fetchRooms = async () => {
+  const fetchRooms = useCallback(async () => {
     setLoading(true);
     try {
       const data = await listRooms();
       setRooms(data);
     } catch (_) {}
     setLoading(false);
-  };
+  }, [listRooms]);
 
   useEffect(() => {
     if (isConnected) {
       fetchRooms();
     }
-  }, [isConnected]);
+  }, [isConnected, fetchRooms]);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
