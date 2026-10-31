@@ -1,0 +1,50 @@
+{
+  "name": "final_vote_repeat_multi_imposter",
+  "settings": {
+    "maxPlayers": 5,
+    "imposters": 2,
+    "rounds": 1,
+    "guessAttempts": 1,
+    "category": "Animals"
+  },
+  "secretWord": "Lion",
+  "players": [
+    { "id": "p1", "name": "Normal 1", "role": "normal" },
+    { "id": "p2", "name": "Imposter 1", "role": "imposter" },
+    { "id": "p3", "name": "Normal 2", "role": "normal" },
+    { "id": "p4", "name": "Imposter 2", "role": "imposter" },
+    { "id": "p5", "name": "Normal 3", "role": "normal" }
+  ],
+  "steps": [
+    {
+      "action": "start",
+      "expectedPhase": "roleReveal"
+    },
+    {
+      "action": "readyAll",
+      "expectedPhase": "discussion",
+      "expectedSpeaker": "p1"
+    },
+    {
+      "action": "completeAllRounds",
+      "expectedPhase": "finalVote",
+      "expectedRound": 1
+    },
+    {
+      "action": "finalAccuse",
+      "targetId": "p2",
+      "expectedRevealedRole": "imposter",
+      "expectedTargetAlive": false,
+      "expectedPhase": "finalVote",
+      "expectedRound": 2
+    },
+    {
+      "action": "finalAccuse",
+      "targetId": "p1",
+      "expectedRevealedRole": "normal",
+      "expectedPhase": "ended",
+      "expectedWinner": "imposter",
+      "expectedReason": "finalAccusationFailed"
+    }
+  ]
+}

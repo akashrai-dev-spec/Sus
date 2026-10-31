@@ -1,0 +1,51 @@
+{
+  "name": "innocent_accusation_and_imposter_guess",
+  "settings": {
+    "maxPlayers": 4,
+    "imposters": 1,
+    "rounds": 2,
+    "guessAttempts": 1,
+    "category": "Objects & Food"
+  },
+  "secretWord": "Apple",
+  "players": [
+    { "id": "p1", "name": "Player 1", "role": "normal" },
+    { "id": "p2", "name": "Player 2", "role": "imposter" },
+    { "id": "p3", "name": "Player 3", "role": "normal" },
+    { "id": "p4", "name": "Player 4", "role": "normal" }
+  ],
+  "steps": [
+    {
+      "action": "start",
+      "expectedPhase": "roleReveal"
+    },
+    {
+      "action": "readyAll",
+      "expectedPhase": "discussion",
+      "expectedSpeaker": "p1"
+    },
+    {
+      "action": "clue",
+      "playerId": "p1",
+      "text": "It can be red or green",
+      "expectedNextSpeaker": "p2"
+    },
+    {
+      "action": "accuse",
+      "accuserId": "p1",
+      "targetId": "p3",
+      "expectedRevealedRole": "normal",
+      "expectedAccuserUsed": true,
+      "expectedTargetAlive": true,
+      "expectedPhase": "discussion"
+    },
+    {
+      "action": "imposterGuess",
+      "playerId": "p2",
+      "word": "Apple",
+      "expectedPhase": "ended",
+      "expectedWinner": "imposter",
+      "expectedReason": "guessedWord"
+    }
+  ]
+}

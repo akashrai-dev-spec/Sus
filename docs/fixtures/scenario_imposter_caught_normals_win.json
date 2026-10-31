@@ -1,0 +1,43 @@
+{
+  "name": "imposter_caught_normals_win",
+  "settings": {
+    "maxPlayers": 3,
+    "imposters": 1,
+    "rounds": 1,
+    "guessAttempts": 1,
+    "category": "Objects & Food"
+  },
+  "secretWord": "Pizza",
+  "players": [
+    { "id": "p1", "name": "Player 1", "role": "normal" },
+    { "id": "p2", "name": "Player 2", "role": "imposter" },
+    { "id": "p3", "name": "Player 3", "role": "normal" }
+  ],
+  "steps": [
+    {
+      "action": "start",
+      "expectedPhase": "roleReveal"
+    },
+    {
+      "action": "readyAll",
+      "expectedPhase": "discussion",
+      "expectedSpeaker": "p1"
+    },
+    {
+      "action": "clue",
+      "playerId": "p1",
+      "text": "It is baked in a very hot oven",
+      "expectedNextSpeaker": "p2"
+    },
+    {
+      "action": "accuse",
+      "accuserId": "p3",
+      "targetId": "p2",
+      "expectedRevealedRole": "imposter",
+      "expectedTargetAlive": false,
+      "expectedPhase": "ended",
+      "expectedWinner": "normal",
+      "expectedReason": "allImpostersCaught"
+    }
+  ]
+}

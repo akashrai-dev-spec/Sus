@@ -1,0 +1,19 @@
+{
+  "name": "word_filter_and_imposter_cap",
+  "imposterCapTests": [
+    { "players": 3, "setting": 3, "expectedCap": 1 },
+    { "players": 4, "setting": 3, "expectedCap": 1 },
+    { "players": 5, "setting": 3, "expectedCap": 2 },
+    { "players": 6, "setting": 3, "expectedCap": 2 },
+    { "players": 8, "setting": 3, "expectedCap": 3 },
+    { "players": 12, "setting": 3, "expectedCap": 3 }
+  ],
+  "wordFilterTests": [
+    { "secretWord": "Apple", "clue": "I love eating an Apple", "expectedForbidden": true },
+    { "secretWord": "Apple", "clue": "APPLE!", "expectedForbidden": true },
+    { "secretWord": "Apple", "clue": "Is it an apple...?", "expectedForbidden": true },
+    { "secretWord": "Apple", "clue": "It can be red or green", "expectedForbidden": false },
+    { "secretWord": "Pizza", "clue": "Pepperoni pizza with cheese", "expectedForbidden": true },
+    { "secretWord": "Pizza", "clue": "It is baked in an oven", "expectedForbidden": false }
+  ]
+}
