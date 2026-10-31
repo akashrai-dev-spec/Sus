@@ -388,4 +388,66 @@ describe("Shared Fixture Replays", () => {
     expect(res2.category).toBe("Custom");
     expect(res2.word).toBe("Kathmandu");
   });
+
+  it("selects imposters with unbiased uniform randomness across repeated games", () => {
+    const players: GamePlayer[] = [
+      { id: "p1", name: "P1", color: "#9A0F28", isAlive: true, isHost: true, usedAccusation: false, remainingGuesses: 1, isReady: true },
+      { id: "p2", name: "P2", color: "#9A0F28", isAlive: true, isHost: false, usedAccusation: false, remainingGuesses: 1, isReady: true },
+      { id: "p3", name: "P3", color: "#9A0F28", isAlive: true, isHost: false, usedAccusation: false, remainingGuesses: 1, isReady: true },
+    ];
+    const settings: GameSettings = {
+      maxPlayers: 3,
+      imposters: 1,
+      rounds: 2,
+      guessAttempts: 1,
+      category: "Objects & Food",
+    };
+
+    const imposterCounts: Record<string, number> = { p1: 0, p2: 0, p3: 0 };
+    const iterations = 600;
+
+    for (let i = 0; i < iterations; i++) {
+      const state = GameEngine.startGame({
+        players,
+        settings,
+        secretWord: "Apple",
+        category: "Objects & Food",
+      });
+      const imp = state.players.find((p) => p.role === "imposter")!;
+      imposterCounts[imp.id]++;
+    }
+
+    // Each player should be picked around ~200 times (within reasonable statistical bounds, e.g. 130 - 270)
+    expect(imposterCounts.p1).toBeGreaterThan(130);
+    expect(imposterCounts.p1).toBeLessThan(270);
+    expect(imposterCounts.p2).toBeGreaterThan(130);
+    expect(imposterCounts.p2).toBeLessThan(270);
+    expect(imposterCounts.p3).toBeGreaterThan(130);
+    expect(imposterCounts.p3).toBeLessThan(270);
+  });
+
+  it("supports custom discussion rounds up to 10", () => {
+    const players: GamePlayer[] = [
+      { id: "p1", name: "P1", color: "#9A0F28", isAlive: true, isHost: true, usedAccusation: false, remainingGuesses: 1, isReady: true },
+      { id: "p2", name: "P2", color: "#9A0F28", isAlive: true, isHost: false, usedAccusation: false, remainingGuesses: 1, isReady: true },
+      { id: "p3", name: "P3", color: "#9A0F28", isAlive: true, isHost: false, usedAccusation: false, remainingGuesses: 1, isReady: true },
+    ];
+    const settings: GameSettings = {
+      maxPlayers: 3,
+      imposters: 1,
+      rounds: 10,
+      guessAttempts: 1,
+      category: "Objects & Food",
+    };
+
+    const state = GameEngine.startGame({
+      players,
+      settings,
+      secretWord: "Apple",
+      category: "Objects & Food",
+      customOrder: ["p1", "p2", "p3"],
+    });
+
+    expect(state.settings.rounds).toBe(10);
+  });
 });

@@ -9,7 +9,7 @@ export const sessionHelloSchema = z.object({
 export const gameSettingsSchema = z.object({
   maxPlayers: z.number().int().min(3).max(12).default(6),
   imposters: z.number().int().min(1).max(3).default(1),
-  rounds: z.number().int().min(1).max(3).default(2),
+  rounds: z.number().int().min(1).max(10).default(2),
   guessAttempts: z.number().int().min(1).max(2).default(1),
   category: z.string().default("Random"),
   customWord: z.string().trim().max(50).optional(),
