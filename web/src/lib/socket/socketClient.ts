@@ -6,8 +6,15 @@ export function getGameSocket(): Socket {
   if (!socket) {
     let serverUrl: string;
 
-    if (process.env.NEXT_PUBLIC_SERVER_URL) {
-      serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+    const configuredUrl =
+      process.env.NEXT_PUBLIC_SERVER_URL ||
+      process.env.NEXT_PUBLIC_SOCKET_URL;
+
+    if (configuredUrl) {
+      serverUrl =
+        configuredUrl.startsWith("http://") || configuredUrl.startsWith("https://")
+          ? configuredUrl
+          : `https://${configuredUrl}`;
     } else if (typeof window !== "undefined") {
       // In standalone local dev (port 3001), connect to backend port 3000
       if (window.location.port === "3001") {
