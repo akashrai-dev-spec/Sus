@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -166,22 +165,84 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               const SizedBox(height: 28),
 
-              // Server URL field for debugging or custom server
-              if (kDebugMode) ...[
-                Text(
-                  'Server URL (debug)',
-                  style: SusTypography.caption.copyWith(color: colors.mute),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _serverController,
-                  style: SusTypography.body.copyWith(color: colors.bone),
-                  decoration: const InputDecoration(
-                    hintText: 'http://localhost:3000',
+              // Server connection settings
+              Text(
+                'Game Server Connection',
+                style: SusTypography.caption.copyWith(color: colors.mute),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          _serverController.text = 'https://sus-server-t5te.onrender.com';
+                        });
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        side: BorderSide(
+                          color: _serverController.text.contains('onrender.com')
+                              ? colors.crimson
+                              : colors.line,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        '☁️ Render Cloud',
+                        style: SusTypography.caption.copyWith(
+                          color: colors.bone,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          _serverController.text = 'http://localhost:3000';
+                        });
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        side: BorderSide(
+                          color: _serverController.text.contains('localhost')
+                              ? colors.crimson
+                              : colors.line,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        '💻 Localhost',
+                        style: SusTypography.caption.copyWith(
+                          color: colors.bone,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _serverController,
+                style: SusTypography.body.copyWith(color: colors.bone),
+                decoration: InputDecoration(
+                  hintText: 'https://sus-server-t5te.onrender.com',
+                  hintStyle: TextStyle(color: colors.mute.withValues(alpha: 0.5)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
-                const SizedBox(height: 28),
-              ],
+              ),
+              const SizedBox(height: 28),
 
               // Action buttons
               Row(
