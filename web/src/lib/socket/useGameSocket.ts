@@ -156,7 +156,8 @@ export function useGameSocket() {
           notifyStateChange();
           resolve(res.data);
         } else {
-          reject(new Error(res?.error?.message || "Failed to sync room"));
+          const errMsg = res?.message || res?.error?.message || res?.code || "Failed to sync room";
+          reject(new Error(errMsg));
         }
       });
     });
@@ -182,7 +183,8 @@ export function useGameSocket() {
             notifyStateChange();
             resolve(res.data);
           } else {
-            reject(new Error(res?.error?.message || "Failed to create room"));
+            const errMsg = res?.message || res?.error?.message || res?.code || "Failed to create room";
+            reject(new Error(errMsg));
           }
         });
       });
@@ -199,7 +201,8 @@ export function useGameSocket() {
           notifyStateChange();
           resolve(res.data);
         } else {
-          reject(new Error(res?.error?.message || "Failed to join room"));
+          const errMsg = res?.message || res?.error?.message || res?.code || "Failed to join room";
+          reject(new Error(errMsg));
         }
       });
     });

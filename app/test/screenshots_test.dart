@@ -32,6 +32,14 @@ class MockSocketService extends SocketService {
     required String name,
     required String color,
   }) {}
+
+  @override
+  bool get isConnected => true;
+
+  @override
+  Future<Map<String, dynamic>> listRooms() async {
+    return {'ok': true, 'data': <Map<String, dynamic>>[]};
+  }
 }
 
 void main() {
@@ -59,6 +67,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          socketServiceProvider.overrideWithValue(MockSocketService()),
           ...?overrides,
         ],
         child: MaterialApp(

@@ -51,7 +51,9 @@ class PinFieldState extends State<PinField>
     if (_controller.text.length == 4) {
       widget.onCompleted?.call(_controller.text);
     }
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void shake() {
