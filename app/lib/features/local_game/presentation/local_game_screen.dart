@@ -52,8 +52,8 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
     }
   }
 
-  void _confirmLeaveGame() {
-    showModalBottomSheet<void>(
+  Future<void> _confirmLeaveGame() async {
+    final leave = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: const Color(0xFF1D1D1D),
       shape: const RoundedRectangleBorder(
@@ -81,7 +81,7 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
+                      onPressed: () => Navigator.of(ctx).pop(false),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         side: BorderSide(color: colors.line, width: 1.5),
@@ -101,10 +101,7 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        context.go('/');
-                      },
+                      onPressed: () => Navigator.of(ctx).pop(true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.crimson,
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -128,62 +125,70 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
         );
       },
     );
+
+    if ((leave ?? false) && mounted) {
+      context.go('/');
+    }
   }
 
-  void _showAccuseFlow() {
+  Future<void> _showAccuseFlow() async {
     final progress = ref.read(localGameControllerProvider);
     if (progress == null) return;
     final gameState = progress.gameState;
     final isFinal = gameState.currentPhase is FinalVotePhase;
     final alive = gameState.alivePlayers;
 
+    String? targetId;
+    String? accuserId;
+
     if (isFinal) {
-      // Direct group accusation
-      _showTargetPickerSheet(
+      targetId = await _showTargetPickerSheet(
         title: 'Final accusation',
         subtitle: 'Who does the group accuse? A wrong guess ends the game.',
         targets: alive,
-        onTargetPicked: (targetId) {
-          ref.read(localGameControllerProvider.notifier).accuse(targetId: targetId);
-          _showAccusationOutcomeSheet();
-        },
       );
+      if (targetId == null || !mounted) return;
     } else {
-      // Step 1: Who is accusing?
       final eligibleAccusers = alive.where((p) => !p.usedAccusation).toList();
       if (eligibleAccusers.isEmpty) {
         AppToast.show(context, 'No players have accusations left.');
         return;
       }
 
-      _showAccuserPickerSheet(
-        accusers: eligibleAccusers,
-        onAccuserPicked: (accuserId) {
-          final accuser = gameState.getPlayer(accuserId)!;
-          final availableTargets = alive.where((p) => p.id != accuserId).toList();
+      accuserId = await _showAccuserPickerSheet(accusers: eligibleAccusers);
+      if (accuserId == null || !mounted) return;
 
-          _showTargetPickerSheet(
-            title: '${accuser.name} accuses…',
-            subtitle: 'Pick who you think is the imposter. They will reveal their role.',
-            targets: availableTargets,
-            onTargetPicked: (targetId) {
-              ref.read(localGameControllerProvider.notifier).accuse(
-                    accuserId: accuserId,
-                    targetId: targetId,
-                  );
-              _showAccusationOutcomeSheet();
-            },
-          );
-        },
+      final accuser = gameState.getPlayer(accuserId)!;
+      final availableTargets = alive.where((p) => p.id != accuserId).toList();
+
+      targetId = await _showTargetPickerSheet(
+        title: '${accuser.name} accuses…',
+        subtitle: 'Pick who you think is the imposter. They will reveal their role.',
+        targets: availableTargets,
       );
+      if (targetId == null || !mounted) return;
+    }
+
+    ref.read(localGameControllerProvider.notifier).accuse(
+          accuserId: accuserId,
+          targetId: targetId,
+        );
+
+    if (!mounted) return;
+    await _showAccusationOutcomeSheet();
+
+    if (mounted) {
+      final state = ref.read(localGameControllerProvider)?.gameState;
+      if (state?.currentPhase is EndedPhase) {
+        context.go('/results');
+      }
     }
   }
 
-  void _showAccuserPickerSheet({
+  Future<String?> _showAccuserPickerSheet({
     required List<GamePlayer> accusers,
-    required ValueChanged<String> onAccuserPicked,
   }) {
-    showModalBottomSheet<void>(
+    return showModalBottomSheet<String>(
       context: context,
       backgroundColor: const Color(0xFF1D1D1D),
       shape: const RoundedRectangleBorder(
@@ -217,8 +222,7 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
                       name: p.name,
                       colorHex: p.color,
                       onTap: () {
-                        Navigator.of(ctx).pop();
-                        onAccuserPicked(p.id);
+                        Navigator.of(ctx).pop(p.id);
                       },
                     );
                   },
@@ -243,13 +247,12 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
     );
   }
 
-  void _showTargetPickerSheet({
+  Future<String?> _showTargetPickerSheet({
     required String title,
     required String subtitle,
     required List<GamePlayer> targets,
-    required ValueChanged<String> onTargetPicked,
   }) {
-    showModalBottomSheet<void>(
+    return showModalBottomSheet<String>(
       context: context,
       backgroundColor: const Color(0xFF1D1D1D),
       shape: const RoundedRectangleBorder(
@@ -277,8 +280,7 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
                       name: p.name,
                       colorHex: p.color,
                       onTap: () {
-                        Navigator.of(ctx).pop();
-                        onTargetPicked(p.id);
+                        Navigator.of(ctx).pop(p.id);
                       },
                     );
                   },
@@ -303,17 +305,17 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
     );
   }
 
-  void _showAccusationOutcomeSheet() {
+  Future<void> _showAccusationOutcomeSheet() {
     final progress = ref.read(localGameControllerProvider);
-    if (progress == null) return;
+    if (progress == null) return Future.value();
     final res = progress.gameState.lastAccusationResult;
-    if (res == null) return;
+    if (res == null) return Future.value();
 
     final target = progress.gameState.getPlayer(res.targetId)!;
     final accuser = res.accuserId != null ? progress.gameState.getPlayer(res.accuserId!) : null;
     final isCaught = res.outcome == AccusationOutcome.caught;
 
-    showModalBottomSheet<void>(
+    return showModalBottomSheet<void>(
       context: context,
       isDismissible: false,
       enableDrag: false,
@@ -359,13 +361,7 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  final state = ref.read(localGameControllerProvider)?.gameState;
-                  if (state?.currentPhase is EndedPhase) {
-                    context.go('/results');
-                  }
-                },
+                onPressed: () => Navigator.of(ctx).pop(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors.crimson,
                   minimumSize: const Size.fromHeight(52),
@@ -388,12 +384,12 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
     );
   }
 
-  void _showImposterGuessDialog() {
+  Future<void> _showImposterGuessDialog() async {
     final progress = ref.read(localGameControllerProvider);
     if (progress == null) return;
     final alive = progress.gameState.alivePlayers;
 
-    showModalBottomSheet<void>(
+    final result = await showModalBottomSheet<Map<String, String>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFF1D1D1D),
@@ -486,19 +482,10 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
                             final guess = guessController.text.trim();
                             if (guess.isEmpty) return;
 
-                            Navigator.of(sheetContext).pop();
-                            final won = ref
-                                .read(localGameControllerProvider.notifier)
-                                .imposterGuess(
-                                  playerId: selectedPlayerId,
-                                  word: guess,
-                                );
-
-                            if (won) {
-                              context.go('/results');
-                            } else {
-                              AppToast.show(context, 'Not the word');
-                            }
+                            Navigator.of(sheetContext).pop({
+                              'playerId': selectedPlayerId,
+                              'word': guess,
+                            });
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: colors.crimson,
@@ -525,6 +512,21 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
         );
       },
     );
+
+    if (result != null && mounted) {
+      final won = ref
+          .read(localGameControllerProvider.notifier)
+          .imposterGuess(
+            playerId: result['playerId']!,
+            word: result['word']!,
+          );
+
+      if (won) {
+        context.go('/results');
+      } else {
+        AppToast.show(context, 'Not the word');
+      }
+    }
   }
 
   @override
