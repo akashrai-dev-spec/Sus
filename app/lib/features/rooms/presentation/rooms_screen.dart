@@ -44,8 +44,8 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
     }
   }
 
-  void _showPinDialog(Map<String, dynamic> room) {
-    showModalBottomSheet<void>(
+  Future<void> _showPinDialog(Map<String, dynamic> room) async {
+    final joined = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFF1D1D1D),
@@ -100,16 +100,12 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                         pin: enteredPin,
                       );
 
-                      if (sheetContext.mounted) {
-                        Navigator.of(sheetContext).pop();
-                      }
-
                       if (res['ok'] == true) {
-                        if (mounted) {
-                          context.push('/lobby/${room['id']}');
+                        if (sheetContext.mounted) {
+                          Navigator.of(sheetContext).pop(true);
                         }
                       } else {
-                        if (mounted) {
+                        if (sheetContext.mounted) {
                           pinKey.currentState?.shake();
                           AppToast.show(
                             context,
@@ -126,6 +122,10 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
         );
       },
     );
+
+    if ((joined ?? false) && mounted) {
+      context.push('/lobby/${room['id']}');
+    }
   }
 
   @override

@@ -21,8 +21,8 @@ class LobbyScreen extends ConsumerStatefulWidget {
 }
 
 class _LobbyScreenState extends ConsumerState<LobbyScreen> {
-  void _confirmLeaveLobby() {
-    showModalBottomSheet<void>(
+  Future<void> _confirmLeaveLobby() async {
+    final leave = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: const Color(0xFF1D1D1D),
       shape: const RoundedRectangleBorder(
@@ -50,7 +50,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
+                      onPressed: () => Navigator.of(ctx).pop(false),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         side: BorderSide(color: colors.line, width: 1.5),
@@ -64,11 +64,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () async {
-                        Navigator.of(ctx).pop();
-                        await ref.read(onlineGameControllerProvider.notifier).leaveRoom();
-                        if (mounted) context.go('/');
-                      },
+                      onPressed: () => Navigator.of(ctx).pop(true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.crimson,
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -86,6 +82,11 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         );
       },
     );
+
+    if ((leave ?? false) && mounted) {
+      await ref.read(onlineGameControllerProvider.notifier).leaveRoom();
+      if (mounted) context.go('/');
+    }
   }
 
   @override
