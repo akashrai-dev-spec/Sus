@@ -28,6 +28,8 @@ export interface GameSettings {
   rounds: number;
   guessAttempts: number;
   category: string;
+  customWord?: string;
+  customCategory?: string;
 }
 
 export interface GamePlayer {

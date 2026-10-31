@@ -325,7 +325,11 @@ export class RoomManager {
       throw new Error("MIN_PLAYERS_NOT_MET");
     }
 
-    const { category, word } = pickSecretWord(room.settings.category);
+    const { category, word } = pickSecretWord(
+      room.settings.category,
+      room.settings.customWord,
+      room.settings.customCategory
+    );
 
     const gamePlayers: GamePlayer[] = room.players.map((p) => ({
       id: p.id,
