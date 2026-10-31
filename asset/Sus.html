@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#161616;--panel:#222;--line:#333;--red:#9a0f28;--red2:#b5173a;--bone:#f4f4f4;--mute:#9a9a9a;--grey:#d9d9d9;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*:before,*:after{box-sizing:inherit}
+html,body{height:100%;margin:0;background:#0c0c0c;color:var(--bone);font:500 16px/1.4 Inter,system-ui,sans-serif}
+#app{max-width:430px;height:100%;margin:0 auto;background:var(--ink);display:flex;flex-direction:column;position:relative;overflow:hidden}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;min-height:64px}
+header .l{color:var(--red);display:flex;background:none;border:0;padding:0;cursor:pointer;font:700 28px/1 Inter;color:var(--bone)}
+.av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:800;border:2px solid #fff3;cursor:pointer}
+main{flex:1;overflow-y:auto;padding:4px 22px 28px;display:flex;flex-direction:column}
+h1{font-size:40px;line-height:1.1;font-weight:800;margin:0;text-align:center}
+h2{font-size:26px;margin:4px 0 6px;font-weight:800}
+p.s{color:var(--mute);margin:0 0 18px}
+button{font:inherit;cursor:pointer;border:0;color:inherit}
+.btn{background:var(--red);color:#fff;font-weight:700;padding:15px 22px;border-radius:12px;font-size:18px;width:100%}
+.btn:hover{background:var(--red2)}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.g{background:var(--grey);color:#111;font-size:15px;font-weight:700}
+.btn.o{background:none;border:1.5px solid var(--line);color:var(--bone)}
+.home{justify-content:center;align-items:center;gap:26px;text-align:center}
+.home .row{display:flex;gap:16px;width:100%}.home .row .btn:first-child{flex:1.1}.home .row .btn:last-child{flex:.9}
+.choice{display:block;text-align:left;background:var(--panel);border-radius:16px;padding:20px;margin-bottom:14px;width:100%;border:1.5px solid var(--line)}
+.choice:hover{border-color:var(--red)}.choice b{display:block;font-size:20px}.choice span{color:var(--mute);font-size:14px}
+.room{display:flex;align-items:center;gap:12px;background:var(--panel);border-radius:14px;padding:14px 16px;margin-bottom:10px;width:100%;text-align:left}
+.room:disabled{opacity:.45}.room .n{flex:1}.room b{display:block}.room small{color:var(--mute)}
+.pill{background:#0004;border-radius:99px;padding:4px 10px;font-size:13px;white-space:nowrap}
+label{display:block;font-size:14px;color:var(--mute);margin:0 0 14px}
+input,select{display:block;width:100%;margin-top:6px;background:var(--panel);border:1.5px solid var(--line);border-radius:10px;padding:12px;color:var(--bone);font:inherit;font-size:16px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--red2);outline-offset:2px}
+input[type=range]{padding:0;accent-color:var(--red)}
+.seg{display:flex;gap:6px;margin:6px 0 16px}.seg button{flex:1;padding:10px 0;background:var(--panel);border-radius:10px;border:1.5px solid var(--line)}
+.seg button.on{background:var(--red);border-color:var(--red);font-weight:700}
+.cap{font-size:14px;color:var(--mute)}
+.pl{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.pl .av{width:34px;height:34px;font-size:14px}.pl.out{opacity:.4;text-decoration:line-through}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 16px}.chips span{background:var(--panel);padding:5px 11px;border-radius:99px;font-size:13px}
+.peek{width:100%;min-height:210px;border-radius:18px;background:var(--panel);border:2px dashed #555;font-size:20px;font-weight:700;padding:20px;user-select:none;-webkit-user-select:none;touch-action:none}
+.peek.on{background:var(--red);border:2px solid var(--red2)}
+.peek.on .h,.peek:not(.on) .s{display:none}.peek .s b{display:block;font-size:38px;margin:8px 0}.peek .s small{font-weight:500;font-size:15px}
+.mini{background:none;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;font-size:14px;color:var(--mute);user-select:none;touch-action:none}.mini.on{background:var(--red);color:#fff;border-color:var(--red)}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.log{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px 0;min-height:120px}
+.msg{display:flex;gap:10px;align-items:flex-start}.msg .av{width:30px;height:30px;font-size:12px;flex:none}
+.msg div{background:var(--panel);padding:8px 12px;border-radius:4px 14px 14px 14px;max-width:80%}.msg small{display:block;color:var(--mute);font-size:12px}
+.sys{text-align:center;color:var(--red2);font-size:14px;font-weight:700;padding:4px}
+.turn{font-weight:700;margin:6px 0}.send{display:flex;gap:8px}.send input{margin:0}.send .btn{width:auto;padding:12px 18px;font-size:16px}
+.acts{display:flex;gap:8px;margin-top:10px}.acts .btn{font-size:15px;padding:13px 10px}
+.ov{position:absolute;inset:0;background:#000b;display:flex;align-items:flex-end;z-index:5}
+.sheet{background:#1d1d1d;width:100%;border-radius:22px 22px 0 0;padding:22px;max-height:88%;overflow-y:auto;border-top:2px solid var(--red)}
+.sheet h3{margin:0 0 8px;font-size:22px}.sheet ol{padding-left:20px;color:#ccc;margin:0 0 14px}.sheet li{margin-bottom:6px}
+.sw{display:flex;gap:8px;margin:6px 0 16px}.sw i{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent}.sw i.on{border-color:#fff}
+.pin{letter-spacing:.6em;text-align:center;font-size:28px;font-weight:800}
+.shake{animation:sh .3s}@keyframes sh{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.big{font-size:34px;font-weight:800;line-height:1.1;margin:10px 0}.win{color:#6fd08c}.lose{color:var(--red2)}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:10px;font-weight:700;z-index:9;font-size:14px}
+.slide{position:relative;width:100%;height:58px;border-radius:14px;background:linear-gradient(90deg,var(--red2) calc(var(--p,0)*100%),var(--red) 0);overflow:hidden;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;font-weight:700;font-size:17px;color:#fff;cursor:pointer}
+.slide .lbl{padding-left:52px;opacity:calc(1 - var(--p,0)*1.3);pointer-events:none;white-space:nowrap}.slide .lbl i{font-style:normal;opacity:.5;letter-spacing:2px}
+.slide .knob{position:absolute;left:4px;top:4px;width:50px;height:50px;border-radius:11px;background:#fff;color:var(--red);display:grid;place-items:center;font-style:normal;font-size:30px;font-weight:800;touch-action:none;cursor:grab;transition:transform .25s}
+.slide.drag .knob{transition:none;cursor:grabbing}.slide.off{opacity:.4;cursor:not-allowed}.slide.off .knob{cursor:not-allowed}
+.acts{flex-wrap:wrap}.acts .slide{flex:1 1 100%}
+.slide,.btn,.seg,label,.send,.choice,.room,.acts,.chips,.bar,h2,p.s{flex-shrink:0}.slide{min-height:58px}
+@media(prefers-reduced-motion:reduce){.shake{animation:none}.slide .knob{transition:none}}
+</style></head><body><div id="app"></div>
+<script>
+const $=s=>document.querySelector(s),rnd=a=>a[Math.random()*a.length|0],shuf=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const COL=['#9a0f28','#c2410c','#a16207','#4d7c0f','#0f766e','#1d4ed8','#6d28d9','#be185d'];
+const ADJ=['Sneaky','Quiet','Rusty','Lucky','Sleepy','Jumpy','Bold','Cosmic','Salty','Wily'],ANI=['Otter','Fox','Panda','Moth','Crow','Gecko','Lynx','Yak','Newt','Hare'];
+const WORDS={'Objects & Food':{Apple:['It can be red','You can eat it','It grows on trees','Used for juice'],Pizza:['It’s round','Comes with cheese','Delivered in a box','Cut into slices'],Chair:['You sit on it','Has legs','Found at a table','Can be wooden'],Phone:['You carry it','It has a screen','Rings or buzzes','Needs charging']},
+'Famous people':{Messi:['Plays football','Left-footed','From Argentina','Won a World Cup'],Einstein:['A physicist','Wild grey hair','Famous equation','Relativity'],Beyoncé:['A singer','Known for tours','Big stage shows','Has a huge fanbase'],Ronaldo:['An athlete','Scores a lot','From Portugal','Famous celebration']},
+'Animals':{Lion:['Has a mane','Lives in a pride','Called a king','Roars loudly'],Cat:['Purrs','Chases mice','Has whiskers','Sleeps a lot'],Elephant:['Very big','Has a trunk','Big ears','Never forgets'],Panda:['Black and white','Eats bamboo','From China','Very sleepy']},
+'Places':{Paris:['A big city','In Europe','Known for romance','Has a famous tower'],Nepal:['Mountains','In Asia','Has Everest','Known for trekking'],'Eiffel Tower':['Very tall','Made of iron','Tourists visit it','Lights up at night'],Tokyo:['Very busy','In Asia','Great food','Neon lights']}};
+const GEN=['Most people know it','You see it often','It’s quite common','People like it','It can be big or small','I’ve used it before','It depends on the day','Everyone has an opinion on it'];
+let uid=0,T;const mkName=()=>rnd(ADJ)+' '+rnd(ANI),P=(bot,name)=>({id:++uid,bot,name:name||mkName(),color:rnd(COL)});
+const S={me:P(false),screen:'home',modal:null,typing:'',draft:{mode:'Online',names:['','',''],name:'',pin:'',max:6,imp:1,rounds:2,guess:1,cat:'Random'},room:null,G:null,
+rooms:[{n:'Midnight Crew',pin:'4821',max:6,c:3},{n:'Night Owls',pin:'1357',max:8,c:5},{n:'Friday Chaos',pin:'9090',max:4,c:4},{n:'Quiet Table',pin:'2468',max:5,c:2},{n:'Big Lobby',pin:'7777',max:12,c:8}]};
+try{const o=JSON.parse(localStorage.getItem('sus'));if(o){S.me.name=o.n||S.me.name;S.me.color=o.c||S.me.color;if(o.l&&o.l.length>=3)S.draft.names=o.l}}catch(e){}
+const logo=z=>`<svg width="${z}" height="${z}" viewBox="0 0 120 120" fill="currentColor" aria-hidden="true"><path d="M26 6C8 22 6 42 20 56l16-8C26 38 24 24 26 6zM94 6c18 16 20 36 6 50l-16-8c10-10 12-24 10-42z"/><path d="M60 28c26 0 40 16 36 40-3 20-18 36-36 44-18-8-33-24-36-44-4-24 10-40 36-40z"/><path d="M12 76l22-6 6 12-20 6zM108 76l-22-6-6 12 20 6z"/><g fill="#161616"><path d="M34 56l20 6-4 8-18-5zM86 56l-20 6 4 8 18-5z"/><path d="M56 44h8v14h-8zM40 88h40v10H40z"/></g><path d="M45 88l4 8 4-8zM57 88l3 8 3-8zM67 88l4 8 4-8z"/></svg>`;
+const av=p=>`<i class="av" style="background:${p.color}">${esc(p.name[0])}</i>`,pl=id=>S.room.players.find(p=>p.id===id);
+const alive=id=>!S.G.out.includes(id),isImp=id=>S.G.imp.includes(id);
+function toast(t){document.querySelectorAll('#toast').forEach(x=>x.remove());const d=document.createElement('div');d.id='toast';d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),2200)}
+function header(){const s=S.screen;if(s==='reveal'||s==='lreveal'||s==='end')return'<header><span></span></header>';
+const b=s==='home'?`<span class="l" style="color:var(--red)">${logo(38)}</span>`:`<button class="l" data-a="back" aria-label="Back">‹</button>`;
+return`<header>${b}<span data-a="profile" role="button" tabindex="0" aria-label="Edit profile">${av(S.me)}</span></header>`}
+const seg=(l,o,k)=>`<div class="cap">${l}</div><div class="seg">${o.map(v=>`<button data-a="set" data-k="${k}" data-v="${v}" class="${S.draft[k]==v?'on':''}">${v}</button>`).join('')}</div>`;
+const plist=(ps,a)=>ps.map(p=>`<button class="room" data-a="${a}" data-id="${p.id}">${av(p)}<span class="n"><b>${esc(p.name)}</b></span></button>`).join('');
+const localFields=d=>`<p class="s">One phone, everyone together. Add each player’s name.</p>${d.names.map((n,i)=>`<div class="send" style="margin-bottom:8px"><input class="ln" maxlength="16" placeholder="Player ${i+1}" value="${esc(n)}">${d.names.length>3?`<button class="mini" data-a="lrem" data-i="${i}" aria-label="Remove player">✕</button>`:''}</div>`).join('')}<button class="btn o" style="margin-bottom:16px;font-size:15px;padding:11px" data-a="ladd" ${d.names.length>=12?'disabled':''}>Add player</button>`;
+const onlineFields=d=>`<label>Room name<input id="f-n" maxlength="20" value="${esc(d.name)}" placeholder="${esc(S.me.name)}’s room"></label><label>4-digit PIN<input id="f-p" class="pin" inputmode="numeric" maxlength="4" value="${esc(d.pin)}" placeholder="0000"></label><label>Max players: <b id="mv">${d.max}</b> (min 3, max 12)<input id="f-m" type="range" min="3" max="12" value="${d.max}"></label>`;
+const V={
+home:()=>`<div class="home" style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:26px"><div style="color:var(--red)">${logo(150)}</div><h1>One word.<br>One imposter.</h1><div style="width:100%;display:flex;flex-direction:column;gap:12px"><button class="btn" data-a="play">Play</button><button class="btn g" data-a="rules">Learn more</button></div></div>`,
+mode:()=>`<h2>Pick how to play</h2><p class="s">You’re playing as ${esc(S.me.name)}.</p><button class="choice" data-a="rooms"><b>Join a game</b><span>Browse open rooms and enter with a 4-digit PIN</span></button><button class="choice" data-a="create"><b>Create a game</b><span>Set the rules and share your PIN with friends</span></button>`,
+rooms:()=>`<h2>Open rooms</h2><p class="s">Every room is locked with a PIN. Prototype PINs are listed for testing.</p>${S.rooms.map((r,i)=>`<button class="room" data-a="pick" data-i="${i}" ${r.c>=r.max?'disabled':''}><span>🔒</span><span class="n"><b>${r.n}</b><small>PIN ${r.pin}</small></span><span class="pill">${r.c}/${r.max}${r.c>=r.max?' full':''}</span></button>`).join('')}`,
+create:()=>{const d=S.draft;return`<h2>Create a game</h2>${seg('Game type',['Online','Local'],'mode')}${d.mode==='Local'?localFields(d):onlineFields(d)}${seg('Imposters',[1,2,3],'imp')}${seg('Discussion rounds',[1,2,3],'rounds')}${seg('Guess attempts for the imposter',[1,2],'guess')}<label>Secret word category<select id="f-c">${['Random',...Object.keys(WORDS)].map(c=>`<option ${c===d.cat?'selected':''}>${c}</option>`).join('')}</select></label><button class="btn" data-a="make">${d.mode==='Local'?'Start local game':'Create room'}</button>`},
+lobby:()=>{const R=S.room,s=R.set,n=R.players.length;return`<h2>${esc(R.name)}</h2><p class="s">${n}/${R.max} players · PIN ${R.pin}</p><div class="chips"><span>${s.imp} imposter${s.imp>1?'s':''}</span><span>${s.rounds} round${s.rounds>1?'s':''}</span><span>${s.guess} guess${s.guess>1?'es':''}</span><span>${s.cat}</span></div><div style="flex:1">${R.players.map(p=>`<div class="pl">${av(p)}<span style="flex:1">${esc(p.name)}${p.id===S.me.id?' (you)':''}</span>${p===R.players[0]?'<span class="pill">host</span>':''}</div>`).join('')}</div>${R.host?`<div class="acts"><button class="btn o" data-a="bot" ${n>=R.max?'disabled':''}>Add a player</button></div><button class="btn" style="margin-top:10px" data-a="start" ${n<3?'disabled':''}>${n<3?'Need 3 players to start':'Start game'}</button>`:`<p class="s" style="text-align:center">Waiting for the host to start…</p>`}`},
+reveal:()=>{const G=S.G,imp=isImp(S.me.id);return`<h2 style="margin-top:24px">Your secret role</h2><p class="s">Press and hold the card. Let go to hide it.</p><button class="peek" aria-label="Hold to reveal your role"><span class="h">Hold to reveal</span><span class="s">${imp?`<small>You are the</small><b>IMPOSTER</b><small>Category: ${esc(G.cat)}. Blend in and work out the word.</small>`:`<small>The secret word is</small><b>${esc(G.word)}</b><small>Describe it, but never say it.</small>`}</span></button><div style="flex:1"></div><button class="btn" data-a="ready">I’ve seen it</button>`},
+game:()=>{const G=S.G,R=S.room,s=R.set,L=G.order.length,id=G.final?null:cur(),me=S.me.id,imp=isImp(me),rd=Math.min(s.rounds,(G.t/L|0)+1);
+const hint=G.final?'Final accusation':`Round ${rd} of ${s.rounds}`;
+const turn=G.final?(alive(me)&&!imp?'Time’s up. Make your final accusation.':'The group is voting…'):!alive(me)?`You were caught. Watching ${esc(pl(id).name)}…`:id===me?'Your turn. Give a clue.':`${esc(pl(id).name)} is typing…`;
+return`<div class="bar"><span class="pill">${hint}</span><span class="pill">${esc(G.cat)}</span><button class="mini peek">Hold: my role</button></div><div class="chips" style="margin:0 0 6px">${R.players.map(p=>`<span style="${!alive(p.id)?'opacity:.4;text-decoration:line-through':''}${id===p.id?';outline:2px solid var(--red2)':''}">${esc(p.name.split(' ')[0])}</span>`).join('')}</div>
+<div class="log" id="log">${G.log.map(m=>m.sys?`<div class="sys">${esc(m.t)}</div>`:`<div class="msg">${av(pl(m.id))}<div><small>${esc(pl(m.id).name)}</small>${esc(m.t)}</div></div>`).join('')||'<p class="s">Nobody has spoken yet.</p>'}</div>
+<div class="turn">${turn}</div>${id===me&&alive(me)?`<div class="send"><input id="clue" autocomplete="off" maxlength="60" placeholder="Describe the word…" value="${esc(S.typing)}"><button class="btn" data-a="send">Send</button></div>`:''}
+<div class="acts"><button class="btn" data-a="accuse" ${!alive(me)||(!G.final&&G.used.includes(me))||(G.final&&imp)?'disabled':''}>${G.used.includes(me)&&!G.final?'Accusation used':'Accuse'}</button>${imp&&alive(me)?`<button class="btn g" data-a="guess" ${G.guess[me]<1?'disabled':''}>Guess word (${G.guess[me]})</button>`:''}</div>`},
+lreveal:()=>{const G=S.G,p=S.room.players[G.ri],last=G.ri>=S.room.players.length-1,n=esc(p.name);if(!G.ph)return`<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:14px">${av(p).replace('class="av"','class="av" style="width:76px;height:76px;font-size:30px"')}<h2>Pass the phone to ${n}</h2><p class="s">Only ${n} should look at the screen. Player ${G.ri+1} of ${S.room.players.length}.</p><button class="btn" data-a="lseen">I’m ${n}</button></div>`;
+return`<h2 style="margin-top:24px">${n}, your secret role</h2><p class="s">Press and hold the card. Let go to hide it.</p><button class="peek" aria-label="Hold to reveal your role"><span class="h">Hold to reveal</span><span class="s">${isImp(p.id)?`<small>You are the</small><b>IMPOSTER</b><small>Category: ${esc(G.cat)}. Blend in and work out the word.</small>`:`<small>The secret word is</small><b>${esc(G.word)}</b><small>Describe it, but never say it.</small>`}</span></button><div style="flex:1"></div><button class="btn" data-a="lnext">${last?'Hide and start discussion':'Hide and pass it on'}</button>`},
+lgame:()=>{const G=S.G,R=S.room,s=R.set,L=G.order.length,id=G.final?null:cur(),rd=Math.min(s.rounds,(G.t/L|0)+1);return`<div class="bar"><span class="pill">${G.final?'Final accusation':`Round ${rd} of ${s.rounds}`}</span><span class="pill">${esc(G.cat)}</span></div><p class="s">${G.final?'Discussion is over. Vote together, then accuse.':'Speak out loud in this order. Describe the word without saying it.'}</p><div style="flex:1">${G.order.map(i=>`<div class="pl${alive(i)?'':' out'}" style="${id===i?'background:var(--panel);border-radius:10px;padding-left:10px':''}">${av(pl(i))}<span style="flex:1">${esc(pl(i).name)}</span>${id===i?'<span class="pill" style="background:var(--red)">speaking</span>':''}</div>`).join('')}</div><div class="acts">${G.final?'':'<button class="btn g" data-a="lnextturn">Next speaker</button>'}<button class="btn" data-a="laccuse">Accuse</button></div><div class="acts"><button class="btn o" data-a="lguess">Imposter guess</button></div>`},
+end:()=>{const G=S.G,o=G.over,win=(o.w==='norm')!==isImp(S.me.id);return`<div style="margin-top:20px" class="cap">${o.w==='norm'?'Normal players win':'The imposter wins'}</div><div class="big ${G.local||win?'win':'lose'}">${G.local?(o.w==='norm'?'Players win':'Imposter wins'):win?'You win':'You lose'}</div><p class="s">${esc(o.why)}</p><div class="chips" style="margin:0 0 10px"><span>Word: ${esc(G.word)}</span><span>${esc(G.cat)}</span></div><div style="flex:1">${S.room.players.map(p=>`<div class="pl">${av(p)}<span style="flex:1">${esc(p.name)}${p.id===S.me.id?' (you)':''}</span><span class="pill" style="${isImp(p.id)?'background:var(--red)':''}">${isImp(p.id)?'Imposter':'Normal'}</span></div>`).join('')}</div><div class="acts"><button class="btn" data-a="again">Play again</button><button class="btn g" data-a="home">Home</button></div>`}};
+const sheet=(h,x)=>`<div class="ov${x?' x':''}"><div class="sheet">${h}</div></div>`;
+function render(){$('#app').innerHTML=header()+`<main class="${S.screen}">${V[S.screen]()}</main>`+(S.modal||'');const l=$('#log');if(l)l.scrollTop=l.scrollHeight;slideify();const m=$('.sheet input');if(m)m.focus()}
+function go(s){S.screen=s;S.modal=null;render()}
+function readForm(){const d=S.draft,g=i=>$(i);if(g('#f-n')){d.name=g('#f-n').value;d.pin=g('#f-p').value;d.max=+g('#f-m').value}if(g('#f-c'))d.cat=g('#f-c').value;if(g('.ln'))d.names=[...document.querySelectorAll('.ln')].map(i=>i.value)}
+function joinRoom(r){const ps=[S.me];for(let i=0;i<r.c;i++)ps.push(P(true));S.room={name:r.n,pin:r.pin,max:r.max,host:false,players:ps,set:{imp:1,rounds:2,guess:1,cat:'Random'}};toLobby()}
+function toLobby(){S.G=null;go('lobby');if(!S.room.host){clearTimeout(T);T=setTimeout(()=>S.screen==='lobby'&&startGame(),3500)}}
+function startGame(){const R=S.room,st=R.set,n=R.players.length,cat=st.cat==='Random'?rnd(Object.keys(WORDS)):st.cat,k=Math.min(st.imp,Math.max(1,(n-1)>>1));
+S.G={cat,word:rnd(Object.keys(WORDS[cat])),imp:shuf(R.players).slice(0,k).map(p=>p.id),order:shuf(R.players).map(p=>p.id),t:0,log:[],out:[],used:[],guess:Object.fromEntries(R.players.map(p=>[p.id,st.guess])),final:false,over:null,pend:null,local:!!R.local,ri:0,ph:0};S.typing='';go(R.local?'lreveal':'reveal')}
+function cur(){const G=S.G,L=G.order.length,M=L*S.room.set.rounds;while(G.t<M&&!alive(G.order[G.t%L]))G.t++;return G.t<M?G.order[G.t%L]:null}
+function step(){clearTimeout(T);const G=S.G;if(G&&G.local){if(S.screen==='lgame'&&!G.over&&!S.modal){if(cur()===null)G.final=true;render()}return}if(!G||G.over||S.modal||S.screen!=='game')return;const id=cur();
+if(id===null){G.final=true;render();if(isImp(S.me.id)||!alive(S.me.id))T=setTimeout(botFinal,1800);return}
+render();if(id!==S.me.id)T=setTimeout(()=>botTurn(id),1400)}
+function botTurn(id){const G=S.G;if(G.over||S.modal)return;const p=pl(id),L=G.order.length,last=G.t>=L*(S.room.set.rounds-1);let t;
+if(isImp(id)){if(last&&G.guess[id]>0&&Math.random()<.3)return end('imp',`${p.name} guessed the word “${G.word}”.`);t=rnd(GEN)}
+else{const used=G.log.map(m=>m.t),c=WORDS[G.cat][G.word].filter(x=>!used.includes(x));t=c.length?rnd(c):rnd(GEN)}
+G.log.push({id,t});G.t++;afterTurn()}
+function afterTurn(){const G=S.G,L=G.order.length;if(G.t>=L&&Math.random()<.12){const a=shuf(S.room.players.filter(p=>p.bot&&alive(p.id)&&!isImp(p.id)&&!G.used.includes(p.id)))[0];
+if(a){const o=S.room.players.filter(p=>alive(p.id)&&p.id!==a.id),ri=o.filter(p=>isImp(p.id));return accuse(a.id,(Math.random()<.4&&ri.length?rnd(ri):rnd(o)).id)}}step()}
+function botFinal(){const G=S.G;if(G.over||S.modal)return;const a=rnd(S.room.players.filter(p=>alive(p.id)&&!isImp(p.id)&&p.id!==S.me.id)||[]);if(!a)return end('imp','Nobody was left to vote.');
+const o=S.room.players.filter(p=>alive(p.id)&&p.id!==a.id),ri=o.filter(p=>isImp(p.id));accuse(a.id,(Math.random()<.5&&ri.length?rnd(ri):rnd(o)).id)}
+function accuse(a,t){clearTimeout(T);const G=S.G,hit=isImp(t),A=a?pl(a):{name:'The group'},B=pl(t);G.pend={a,hit};if(hit)G.out.push(t);else if(!G.final)G.used.push(a);
+G.log.push({sys:1,t:`${A.name} accused ${B.name}: ${hit?'imposter caught':'not the imposter'}`});
+S.modal=sheet(`<h3>${a===S.me.id?'You':esc(A.name)} accused ${t===S.me.id?'you':esc(B.name)}</h3><p class="s">The game is paused. ${t===S.me.id?'You':esc(B.name)} must reveal a role.</p><div class="big ${hit?'win':'lose'}">${hit?'Imposter!':'Normal player.'}</div><p class="s">${hit?'The imposter is out of the game.':G.final?'The final accusation failed.':`${a===S.me.id?'You have':esc(A.name)+' has'} used up the accusation.`}</p><button class="btn" data-a="cont">Continue</button>`,1);render()}
+function end(w,why){clearTimeout(T);S.G.over={w,why};S.modal=null;go('end')}
+function afterAccuse(){const G=S.G;S.modal=null;if(!G.imp.some(alive))return end('norm','Every imposter was caught.');if(G.final&&!G.pend.hit)return end('imp','The final accusation named the wrong player.');step()}
+const A={play:()=>go('mode'),rules:()=>{S.modal=sheet(`<h3>How Sus works</h3><ol><li>Slide the red bars to the right to confirm an action. This stops accidental taps.</li><li>Join a PIN-locked room. One player is secretly the imposter.</li><li>Normal players see the secret word. The imposter only sees the category.</li><li>Take turns giving one clue. Never say the word itself.</li><li>Press Accuse to pause the game. The accused reveals their role. A wrong accusation uses up your accusation.</li><li>Normal players win by catching every imposter. The imposter wins by guessing the word or surviving the final vote.</li></ol><button class="btn" data-a="close">Got it</button>`);render()},
+close:()=>{S.modal=null;render();step()},rooms:()=>go('rooms'),create:()=>go('create'),
+back:()=>{if(S.screen==='home')return;if(S.screen==='lobby'||S.screen==='game'||S.screen==='lgame'){S.modal=sheet(`<h3>Leave this game?</h3><p class="s">You will return to the main menu.</p><div class="acts"><button class="btn o" data-a="close">Stay</button><button class="btn" data-a="home">Leave</button></div>`);return render()}go(S.screen==='mode'?'home':'mode')},
+home:()=>{clearTimeout(T);S.G=null;S.room=null;go('home')},
+pick:t=>{const r=S.rooms[+t.dataset.i];S.pend=r;S.modal=sheet(`<h3>${r.n}</h3><p class="s">Enter the 4-digit PIN to join.</p><input id="pin" class="pin" inputmode="numeric" maxlength="4" placeholder="••••"><button class="btn" style="margin-top:14px" data-a="join">Join room</button>`);render()},
+join:()=>{const v=$('#pin').value;if(v!==S.pend.pin){$('#pin').classList.remove('shake');void $('#pin').offsetWidth;$('#pin').classList.add('shake');return toast('Wrong PIN. Try again.')}joinRoom(S.pend)},
+set:t=>{readForm();const v=t.dataset.v;S.draft[t.dataset.k]=isNaN(v)?v:+v;render()},
+make:()=>{readForm();const d=S.draft;if(d.mode==='Local'){const n=d.names.map(x=>x.trim()).filter(Boolean);if(n.length<3)return toast('Add at least 3 player names');S.room={name:'Local game',local:true,host:true,max:12,players:n.map(x=>P(false,x)),set:{imp:d.imp,rounds:d.rounds,guess:d.guess,cat:d.cat}};return startGame()}if(!/^\d{4}$/.test(d.pin))return toast('PIN must be exactly 4 digits');
+S.room={name:d.name.trim()||S.me.name+'’s room',pin:d.pin,max:d.max,host:true,players:[S.me],set:{imp:d.imp,rounds:d.rounds,guess:d.guess,cat:d.cat}};toLobby()},
+bot:()=>{S.room.players.push(P(true));render()},start:startGame,
+ready:()=>{S.screen='game';step()},
+send:()=>{const v=$('#clue').value.trim();if(!v)return;if(!isImp(S.me.id)&&v.toLowerCase().includes(S.G.word.toLowerCase()))return toast('You can’t say the secret word');
+S.G.log.push({id:S.me.id,t:v});S.G.t++;S.typing='';afterTurn()},
+accuse:()=>{const G=S.G;clearTimeout(T);S.modal=sheet(`<h3>${G.final?'Final accusation':'Accuse a player'}</h3><p class="s">The game pauses and they reveal their role. ${G.final?'A wrong guess ends the game.':'A wrong guess uses up your accusation.'}</p>${S.room.players.filter(p=>p.id!==S.me.id&&alive(p.id)).map(p=>`<button class="room" data-a="doacc" data-id="${p.id}">${av(p)}<span class="n"><b>${esc(p.name)}</b></span></button>`).join('')}<button class="btn o" data-a="close">Cancel</button>`);render()},
+doacc:t=>accuse(S.me.id,+t.dataset.id),cont:afterAccuse,
+guess:()=>{clearTimeout(T);S.modal=sheet(`<h3>Guess the word</h3><p class="s">Category: ${esc(S.G.cat)}. ${S.G.guess[S.me.id]} attempt(s) left.</p><input id="gw" autocomplete="off" placeholder="Type your guess"><div class="acts"><button class="btn o" data-a="close">Cancel</button><button class="btn" data-a="dog">Guess</button></div>`);render()},
+dog:()=>{const G=S.G,v=$('#gw').value.trim().toLowerCase();if(!v)return;if(v===G.word.toLowerCase())return end('imp',`You guessed “${G.word}” before being caught.`);G.guess[S.me.id]--;S.modal=null;toast('Not the word');step()},
+again:()=>S.room.local?startGame():toLobby(),
+lseen:()=>{S.G.ph=1;render()},
+lnext:()=>{const G=S.G;if(G.ri>=S.room.players.length-1){S.screen='lgame';return step()}G.ri++;G.ph=0;render()},
+lnextturn:()=>{S.G.t++;step()},
+ladd:()=>{readForm();S.draft.names.push('');render()},
+lrem:t=>{readForm();S.draft.names.splice(+t.dataset.i,1);render()},
+laccuse:()=>{const G=S.G,al=S.room.players.filter(p=>alive(p.id));S.who=null;S.modal=G.final?sheet(`<h3>Final accusation</h3><p class="s">Who does the group accuse? A wrong guess ends the game.</p>${plist(al,'lt')}<button class="btn o" data-a="close">Cancel</button>`):sheet(`<h3>Who is accusing?</h3><p class="s">Each player gets one accusation.</p>${plist(al.filter(p=>!G.used.includes(p.id)),'lw')}<button class="btn o" data-a="close">Cancel</button>`);render()},
+lw:t=>{S.who=+t.dataset.id;S.modal=sheet(`<h3>${esc(pl(S.who).name)} accuses…</h3><p class="s">Pick who you think is the imposter. They will reveal their role.</p>${plist(S.room.players.filter(p=>alive(p.id)&&p.id!==S.who),'lt')}<button class="btn o" data-a="close">Cancel</button>`);render()},
+lt:t=>accuse(S.who,+t.dataset.id),
+lguess:()=>{S.modal=sheet(`<h3>Imposter guess</h3><p class="s">Only an imposter should try this. Pick your name and type the word.</p><label>Who is guessing?<select id="lg-w">${S.room.players.filter(p=>alive(p.id)).map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label><input id="gw" autocomplete="off" placeholder="Type your guess"><div class="acts"><button class="btn o" data-a="close">Cancel</button><button class="btn" data-a="ldog">Guess</button></div>`);render()},
+ldog:()=>{const G=S.G,w=+$('#lg-w').value,v=$('#gw').value.trim().toLowerCase();if(!v)return;if(!isImp(w))return toast('Not the word');if(G.guess[w]<1)return toast('No attempts left');if(v===G.word.toLowerCase())return end('imp',`${pl(w).name} guessed “${G.word}” before being caught.`);G.guess[w]--;S.modal=null;toast(`Not the word. ${G.guess[w]} attempt(s) left`);step()},
+profile:()=>{S.modal=sheet(`<h3>Your profile</h3><label>Display name<input id="pn" maxlength="20" value="${esc(S.me.name)}"></label><div class="cap">Colour</div><div class="sw">${COL.map(c=>`<i data-a="col" data-c="${c}" class="${c===S.me.color?'on':''}" style="background:${c}"></i>`).join('')}</div><div class="acts"><button class="btn o" data-a="rnm">Random name</button><button class="btn" data-a="save">Save</button></div>`);render()},
+col:t=>{S.me.color=t.dataset.c;const n=$('#pn').value;A.profile();$('#pn').value=n},
+rnm:()=>{$('#pn').value=mkName()},save:()=>{S.me.name=$('#pn').value.trim()||S.me.name;A.close()}};
+document.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(t){A[t.dataset.a](t);return}const o=e.target.classList.contains('ov')&&!e.target.classList.contains('x');if(o)A.close()});
+document.addEventListener('input',e=>{if(e.target.id==='clue')S.typing=e.target.value;if(e.target.id==='f-m'){S.draft.max=+e.target.value;$('#mv').textContent=e.target.value}});
+document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const i=e.target.id;if(i==='clue')A.send();if(i==='pin')A.join();if(i==='gw')A.dog()});
+document.addEventListener('pointerdown',e=>{const b=e.target.closest('.peek');if(b)b.classList.add('on')});
+['pointerup','pointercancel'].forEach(v=>document.addEventListener(v,()=>document.querySelectorAll('.peek.on').forEach(b=>b.classList.remove('on'))));
+document.addEventListener('contextmenu',e=>{if(e.target.closest('.peek'))e.preventDefault()});
+const NOSLIDE=/^(send|save|close|dog|ldog)$/;
+function slideify(){document.querySelectorAll('button.btn[data-a]:not(.o):not(.g),button[data-a=lnextturn]').forEach(b=>{if(NOSLIDE.test(b.dataset.a))return;const d=document.createElement('div');d.className='slide'+(b.disabled?' off':'');d.dataset.sa=b.dataset.a;d.tabIndex=b.disabled?-1:0;d.setAttribute('role','button');d.setAttribute('aria-label',b.textContent.trim()+', slide right or press Enter');d.innerHTML=`<span class="lbl">${b.innerHTML} <i>›››</i></span><i class="knob">›</i>`;b.replaceWith(d)});
+try{localStorage.setItem('sus',JSON.stringify({n:S.me.name,c:S.me.color,l:S.draft.names}))}catch(e){}}
+let dr=null;
+document.addEventListener('pointerdown',e=>{const k=e.target.closest('.slide:not(.off) .knob');if(!k)return;const s=k.parentNode;dr={s,k,x:e.clientX,dx:0,max:s.clientWidth-k.offsetWidth-8};k.setPointerCapture(e.pointerId);s.classList.add('drag')});
+document.addEventListener('pointermove',e=>{if(!dr)return;dr.dx=Math.max(0,Math.min(dr.max,e.clientX-dr.x));dr.k.style.transform=`translateX(${dr.dx}px)`;dr.s.style.setProperty('--p',dr.dx/dr.max)});
+const rel=()=>{if(!dr)return;const{s,k,max,dx}=dr;dr=null;s.classList.remove('drag');const reset=()=>{if(s.isConnected){k.style.transform='';s.style.setProperty('--p',0)}};if(dx>max*.85){k.style.transform=`translateX(${max}px)`;s.style.setProperty('--p',1);if(navigator.vibrate)navigator.vibrate(30);setTimeout(()=>A[s.dataset.sa](s),120);setTimeout(reset,600)}else reset()};
+['pointerup','pointercancel'].forEach(v=>document.addEventListener(v,rel));
+document.addEventListener('keydown',e=>{const s=e.target.classList&&e.target.classList.contains('slide')?e.target:null;if(s&&!s.classList.contains('off')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();A[s.dataset.sa](s)}});
+render();
+</script></body></html>
