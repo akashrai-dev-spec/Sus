@@ -179,6 +179,32 @@ export function registerSocketHandlers(io: Namespace, roomManager: RoomManager):
       }
     });
 
+    // 4b. room:sync (restore or fetch room state by id or current session)
+    socket.on("room:sync", (rawPayload: any, ack: AckCallback) => {
+      const session = roomManager.getSessionBySocket(socket.id);
+      const targetRoomId = (rawPayload && typeof rawPayload === "object" ? rawPayload.roomId : null) || session?.roomId;
+      if (!targetRoomId) {
+        return safeAck(ack, false, { code: "NO_ROOM", message: "Not currently in a room." });
+      }
+
+      const room = roomManager.getRoom(targetRoomId);
+      if (!room) {
+        return safeAck(ack, false, { code: "NOT_FOUND", message: "Room not found." });
+      }
+
+      socket.join(room.id);
+      if (session && !session.roomId) {
+        session.roomId = room.id;
+      }
+
+      const state = roomManager.getPublicRoomState(room);
+      safeAck(ack, true, state);
+
+      if (session && room.gameState) {
+        sendPrivateRole(socket, room, session.playerId);
+      }
+    });
+
     // 5. rooms:leave
     socket.on("rooms:leave", (_, ack: AckCallback) => {
       const session = roomManager.getSessionBySocket(socket.id);
