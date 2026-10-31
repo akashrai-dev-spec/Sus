@@ -88,5 +88,12 @@
 - **Decision**: Implement comprehensive legal compliance screens in Flutter (`TermsOfServiceScreen`, `PrivacyPolicyScreen`, `LegalNoticeScreen`) and matching Next.js routes (`/terms`, `/privacy`, `/legal`, `/rules`, `/download`) linked from application footers and navigation bars.
 - **Consequences**: Comprehensive legal compliance, clear user attribution, and enhanced commercial trustworthiness.
 
+## ADR 015: Modal Bottom Sheet Lifecycle & Route Navigation Safety
+- **Status**: Accepted
+- **Context**: During accusation resolution and dialog flows, triggering `Navigator.pop()` immediately followed by synchronous GoRouter navigation (`context.go('/results')`) caused a race condition where the route was destroyed while modal bottom sheets were still animating out. This triggered an internal framework assertion failure (`_dependents.isEmpty: is not true` in `InheritedElement.debugDeactivated`).
+- **Decision**: Refactor all modal dialogs (`_showAccuseFlow`, `_showImposterGuessDialog`, `_showPinDialog`, and `_confirmLeaveGame`) to return typed `Future` results and `await` the bottom sheet dismissal before executing state transitions.
+- **Consequences**: Guarantees that bottom sheet routes and their `InheritedElement` trees are completely unmounted and clean before route transitions, eliminating assertion crashes.
+
+
 
 
