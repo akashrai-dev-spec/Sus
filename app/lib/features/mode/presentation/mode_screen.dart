@@ -36,9 +36,7 @@ class ModeScreen extends ConsumerWidget {
             const SizedBox(height: 24),
 
             // Choice 1: Join a game
-            _buildChoiceCard(
-              context: context,
-              colors: colors,
+            _ChoiceCard(
               title: 'Join a game',
               subtitle: 'Browse open rooms and enter with a 4-digit PIN',
               onTap: () => context.push('/rooms'),
@@ -46,9 +44,7 @@ class ModeScreen extends ConsumerWidget {
             const SizedBox(height: 14),
 
             // Choice 2: Create a game
-            _buildChoiceCard(
-              context: context,
-              colors: colors,
+            _ChoiceCard(
               title: 'Create a game',
               subtitle: 'Set the rules and share your PIN with friends',
               onTap: () => context.push('/create'),
@@ -58,38 +54,72 @@ class ModeScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildChoiceCard({
-    required BuildContext context,
-    required SusColors colors,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: colors.panel,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colors.line, width: 1.5),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: SusTypography.heading.copyWith(color: colors.bone),
+class _ChoiceCard extends StatefulWidget {
+  const _ChoiceCard({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  State<_ChoiceCard> createState() => _ChoiceCardState();
+}
+
+class _ChoiceCardState extends State<_ChoiceCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: InkWell(
+        onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: colors.panel,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _isHovered ? colors.crimson : colors.line,
+              width: 1.5,
             ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: SusTypography.caption.copyWith(color: colors.mute),
-            ),
-          ],
+            boxShadow: _isHovered
+                ? [
+                    BoxShadow(
+                      color: colors.crimson.withValues(alpha: 0.18),
+                      blurRadius: 16,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.title,
+                style: SusTypography.heading.copyWith(color: colors.bone),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                widget.subtitle,
+                style: SusTypography.caption.copyWith(color: colors.mute),
+              ),
+            ],
+          ),
         ),
       ),
     );

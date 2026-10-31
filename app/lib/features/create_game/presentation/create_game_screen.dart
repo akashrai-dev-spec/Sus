@@ -1,4 +1,6 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/sus_colors.dart';
@@ -47,7 +49,8 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
     super.initState();
     final profile = ref.read(userProfileProvider);
     _roomNameController = TextEditingController(text: '${profile.name}’s room');
-    _pinController = TextEditingController(text: '0000');
+    final initialPin = (1000 + math.Random().nextInt(9000)).toString();
+    _pinController = TextEditingController(text: initialPin);
 
     _localNameControllers = profile.lastLocalNames
         .map((name) => TextEditingController(text: name))
@@ -183,6 +186,13 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
                 selected: _mode,
                 onChanged: (val) => setState(() => _mode = val),
               ),
+              const SizedBox(height: 6),
+              Text(
+                _mode == 'Online'
+                    ? 'Host a room on the server. Friends join from their own devices with the PIN.'
+                    : 'Pass-and-play on one device. No internet required.',
+                style: SusTypography.caption.copyWith(color: colors.mute),
+              ),
               const SizedBox(height: 20),
 
               if (_mode == 'Online') ..._buildOnlineFields(colors) else ..._buildLocalFields(colors),
@@ -300,15 +310,41 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
         controller: _pinController,
         maxLength: 4,
         keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         style: SusTypography.title.copyWith(
           color: colors.bone,
           letterSpacing: 8,
         ),
         textAlign: TextAlign.center,
-        decoration: const InputDecoration(
+        onTap: () {
+          if (_pinController.text.isNotEmpty) {
+            _pinController.selection = TextSelection(
+              baseOffset: 0,
+              extentOffset: _pinController.text.length,
+            );
+          }
+        },
+        decoration: InputDecoration(
           counterText: '',
           hintText: '0000',
+          hintStyle: TextStyle(
+            color: colors.mute.withValues(alpha: 0.4),
+            letterSpacing: 8,
+          ),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Generate new PIN',
+            onPressed: () {
+              final newPin = (1000 + math.Random().nextInt(9000)).toString();
+              setState(() => _pinController.text = newPin);
+            },
+          ),
         ),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        'Friends enter this PIN to join your room.',
+        style: SusTypography.caption.copyWith(color: colors.mute),
       ),
       const SizedBox(height: 16),
       Text(
