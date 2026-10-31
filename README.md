@@ -163,7 +163,19 @@ Sus is packaged with comprehensive legal disclosures accessible in both the Flut
 
 Looking for a place to host the server for you and your friends?
 
-### Recommended Platform: [Render](https://render.com)
+### Recommended Platform: [Render](https://render.com) or [Vercel](https://vercel.com)
+
+#### Option A: Deploy on Vercel (Multi-Service Project)
+This repository is configured with a root [`vercel.json`](vercel.json) that deploys the Next.js frontend (`web`) and containerized Socket.IO backend (`server`) as a single unified Vercel project:
+1. Import this repository into [Vercel](https://vercel.com).
+2. Vercel automatically detects the multi-service layout from `vercel.json`.
+3. Edge rewrites route `/socket.io/(.*)` directly to the backend container while serving Next.js on `/(.*)`.
+4. Run locally with runtime service bindings:
+   ```bash
+   vercel dev
+   ```
+
+#### Option B: Deploy on Render (Free Tier Blueprint)
 Render offers a **free tier**, full **WebSocket/Socket.IO** support, free **HTTPS/SSL**, and automatic redeployments on every `git push`.
 
 Because this repository contains a [`render.yaml`](render.yaml) blueprint, you can deploy in minutes:
@@ -172,7 +184,7 @@ Because this repository contains a [`render.yaml`](render.yaml) blueprint, you c
 3. Select your GitHub repository (`Sus`).
 4. Click **Apply**!
 
-👉 Read the full [**Production Hosting Guide**](docs/HOSTING.md) for complete details on Render, Railway, and VPS / Docker deployments.
+👉 Read the full [**Production Hosting Guide**](docs/HOSTING.md) for complete details on Vercel, Render, Railway, and VPS / Docker deployments.
 
 ---
 

@@ -94,6 +94,22 @@
 - **Decision**: Refactor all modal dialogs (`_showAccuseFlow`, `_showImposterGuessDialog`, `_showPinDialog`, and `_confirmLeaveGame`) to return typed `Future` results and `await` the bottom sheet dismissal before executing state transitions.
 - **Consequences**: Guarantees that bottom sheet routes and their `InheritedElement` trees are completely unmounted and clean before route transitions, eliminating assertion crashes.
 
+## ADR 016: Vercel Multi-Service Project Architecture & Runtime Service Bindings
+- **Status**: Accepted
+- **Context**: The Sus monorepo consists of a Next.js frontend (`web/`) and a Node.js Socket.IO container backend (`server/`). Deploying them separately increases infrastructure overhead and causes CORS/domain fragmentation. Deploying on Vercel as a single multi-service project unifies both services under one domain and repository.
+- **Decision**:
+  1. Define a root `vercel.json` with multi-service configuration:
+     - `server`: root `server`, runtime `container`.
+     - `web`: root `web`, framework `nextjs`.
+  2. Declare an internal service binding on `web` targeting `server` with format `url` and variable `SERVER_URL`.
+  3. Reconcile public edge rewrites:
+     - Direct `/socket.io/(.*)`, `/api/(.*)`, and `/health` to `server`.
+     - Direct catch-all `/(.*)` to `web`.
+  4. Adapt `web/src/lib/socket/socketClient.ts` to dynamically use `window.location.origin` in unified browser deployments, while supporting `localhost:3000` during standalone local development on port 3001 and `process.env.SERVER_URL` in server environments.
+  5. Provide `/api/health` in Next.js querying the backend container via `SERVER_URL`.
+- **Consequences**: Unified hosting under a single domain, zero CORS complications, zero hardcoded URLs, and robust support for both unified multi-service deployments and standalone development.
+
+
 
 
 
