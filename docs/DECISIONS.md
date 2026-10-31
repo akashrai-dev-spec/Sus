@@ -76,4 +76,17 @@
 - **Decision**: Dynamically render imposter choice buttons (`1`, `1..2`, or `1..3`) according to current player count: `((n-1)/2).clamp(1, 3)`. Add a dedicated 'Custom' option to the discussion rounds selector expanding to a slider and steppers allowing 1 to 10 rounds, validated end-to-end through Zod and engine state machines.
 - **Consequences**: Seamless host configuration with foolproof limits preventing game-breaking minority/majority violations.
 
+## ADR 013: Next.js Responsive Web Client with Zero-Latency Audio Synthesizers
+- **Status**: Accepted
+- **Context**: Players require instant browser-based gameplay without installing software, while demanding visuals surpassing the native app and offline pass-and-play capability.
+- **Decision**: Scaffold a dedicated Next.js 14 App Router application (`web/`) utilizing Tailwind CSS, Lucide icons, socket.io-client, and an embedded TypeScript state machine. Synthesize UI and game sound effects entirely using the browser's Web Audio API (`AudioContext` oscillators and gain nodes) for zero-latency, asset-free offline audio.
+- **Consequences**: Instant zero-install play across desktop and mobile browsers, zero external asset dependencies, and complete parity with native application mechanics.
+
+## ADR 014: Cross-Platform Legal Compliance Pages
+- **Status**: Accepted
+- **Context**: Commercial-grade multiplayer gaming software requires transparent legal disclosures, privacy policies, terms of service, and open-source licensing.
+- **Decision**: Implement comprehensive legal compliance screens in Flutter (`TermsOfServiceScreen`, `PrivacyPolicyScreen`, `LegalNoticeScreen`) and matching Next.js routes (`/terms`, `/privacy`, `/legal`, `/rules`, `/download`) linked from application footers and navigation bars.
+- **Consequences**: Comprehensive legal compliance, clear user attribution, and enhanced commercial trustworthiness.
+
+
 

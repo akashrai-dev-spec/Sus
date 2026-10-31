@@ -14,6 +14,7 @@
 
 <p align="center">
   <a href="#quick-start">Quick Start</a> •
+  <a href="#web-client">Web App</a> •
   <a href="#how-to-play">How to Play</a> •
   <a href="#hosting-the-server">Host on Render</a> •
   <a href="#building-the-android-apk">Build Android APK</a> •
@@ -25,7 +26,10 @@
 
 ## Overview
 
-**Sus** is a cross-platform social deduction party game built as a production-quality monorepo featuring a **Flutter** client (Linux desktop, Android, iOS) and an authoritative **Node.js + TypeScript Socket.IO** server.
+**Sus** is a cross-platform social deduction party game built as a production-quality monorepo featuring:
+1. **Next.js Web Client (`web/`)**: Modern responsive web application with zero-install browser play, Web Audio API procedural sound synthesizers, offline pass-and-play, and real-time Socket.IO multiplayer.
+2. **Flutter Native Client (`app/`)**: High-performance mobile and desktop app running smoothly on Linux desktop, Android, and iOS.
+3. **Socket.IO Backend (`server/`)**: Server-authoritative Node.js + TypeScript engine with leak-proof role isolation and Argon2 PIN protection.
 
 Players are assigned roles secretly: normal players receive a secret word, while the imposter receives only the category. Through round-robin clue giving, tactical bluffing, instant accusations, and high-stakes imposter word guesses, normal players strive to unmask the imposter before the imposter bluffs their way to victory or guesses the secret word!
 
@@ -49,19 +53,27 @@ Players are assigned roles secretly: normal players receive a secret word, while
 
 ## Quick Start
 
-### 🎮 Option 1: Play Right Now (No Setup Required)
-Want to play immediately with friends in the same room using a single phone or laptop?
-1. Launch the app on any device.
+### 🌐 Option 1: Play in Browser (Zero Install)
+Play right now in your web browser with zero downloads:
+```bash
+cd web
+npm run dev
+```
+Open [http://localhost:3001](http://localhost:3001) in your browser. Choose **Local** for pass-and-play on one device, or **Online** to host a PIN-locked multiplayer room!
+
+### 🎮 Option 2: Play Right Now on Flutter (Local Offline)
+Want to play on desktop or mobile using Flutter?
+1. Launch the app on any device (`flutter run -d linux` or mobile).
 2. Select **Play** ››› on the home screen.
 3. Choose **Create a game** > select **Local** mode.
 4. Add your friends' names and pass the phone around to view your secret role cards!
 
-### 📱 Option 2: Install on Your Android Phone
+### 📱 Option 3: Install on Your Android Phone
 Want the app installed on your Android device?
 - Read the simple [**Android APK Build & Install Guide**](docs/BUILD_APK.md).
 - Run `flutter build apk --release` to generate your `.apk`.
 
-### 🌐 Option 3: Host Your Own Multiplayer Server (100% Free)
+### 🚀 Option 4: Host Your Own Multiplayer Server (100% Free)
 Want to play online across different houses or cities?
 - Read the [**Production Server Hosting Guide**](docs/HOSTING.md).
 - We recommend **Render**: deploy the backend server in 1 click with zero devops.
@@ -125,6 +137,25 @@ cd app
 flutter run -d linux
 ```
 *(Or specify `-d chrome` for web, or `-d <device_id>` for connected phones).*
+
+### 5. Run the Next.js Web Client
+In a new terminal window:
+```bash
+cd web
+npm run dev
+```
+Open [http://localhost:3001](http://localhost:3001) in your browser. Both Local Pass-and-Play (100% offline) and Online Multiplayer are ready to play!
+
+---
+
+## Legal & Compliance
+
+Sus is packaged with comprehensive legal disclosures accessible in both the Flutter app (via the home screen footer) and the Web app:
+- **Terms of Service**: [`/terms`](web/src/app/terms/page.tsx)
+- **Privacy Policy**: [`/privacy`](web/src/app/privacy/page.tsx)
+- **Legal Notice & Impressum**: [`/legal`](web/src/app/legal/page.tsx)
+- **Game Rules**: [`/rules`](web/src/app/rules/page.tsx)
+- **Download Center**: [`/download`](web/src/app/download/page.tsx)
 
 ---
 

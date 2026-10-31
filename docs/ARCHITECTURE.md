@@ -4,8 +4,9 @@
 **Sus** ("One word. One imposter.") is a polished social-deduction party game for 3 to 12 players.
 It is architected as a production-quality monorepo consisting of:
 1. **Flutter Client (`app/`)**: Cross-platform application running smoothly on Linux desktop, Android, and iOS. Built with Dart 3, Riverpod 2.x code-gen, GoRouter, Freezed, and Material 3 design tokens.
-2. **Game Server (`server/`)**: Server-authoritative Node.js 20+ and TypeScript backend leveraging Socket.IO v4, Argon2 for PIN hashing, Zod schema validation, and Pino logging.
-3. **Pure State Machines**: Parity state machines written in Dart (`app/lib/engine`) and TypeScript (`server/src/game`) verified against shared test fixtures in `docs/fixtures/`.
+2. **Web Client (`web/`)**: Modern responsive web application built with Next.js 14 App Router, TypeScript, Tailwind CSS, Lucide icons, and browser Web Audio synthesizers for zero-install instant play.
+3. **Game Server (`server/`)**: Server-authoritative Node.js 20+ and TypeScript backend leveraging Socket.IO v4, Argon2 for PIN hashing, Zod schema validation, and Pino logging.
+4. **Pure State Machines**: Parity state machines written in Dart (`app/lib/engine`) and TypeScript (`server/src/game` & `web/src/lib/engine`) verified against shared test fixtures in `docs/fixtures/`.
 
 ---
 
@@ -29,6 +30,7 @@ sus-game/
 │   │   │   ├── mode/           # Online vs Local mode selector
 │   │   │   ├── profile/        # Dedicated profile page and state
 │   │   │   ├── rules/          # Dedicated rules page
+│   │   │   ├── legal/          # Terms of Service, Privacy Policy, Legal Notice
 │   │   │   ├── rooms/          # Online open rooms browser, PIN sheet
 │   │   │   ├── create_game/    # Online & Local configuration form
 │   │   │   ├── lobby/          # Online game lobby, player list, host settings
@@ -41,6 +43,16 @@ sus-game/
 │   │   ├── fonts/              # Inter-Regular, Inter-Medium, Inter-Bold, Inter-ExtraBold
 │   │   └── words/              # Comprehensive offline word bank (JSON)
 │   └── test/                   # Unit, widget, golden, and integration tests
+├── web/
+│   ├── src/
+│   │   ├── app/                # Next.js App Router (home, play, rules, download, legal)
+│   │   ├── components/         # Navbar, Footer, UI components
+│   │   └── lib/
+│   │       ├── audio/          # Web Audio API procedural sound synthesizer
+│   │       ├── engine/         # Pure TypeScript client game engine
+│   │       └── socket/         # Socket.IO connection manager and React hook
+│   ├── public/                 # Static branding assets (mask.svg)
+│   └── Dockerfile
 ├── server/
 │   ├── src/
 │   │   ├── config.ts           # Typed environment configuration
