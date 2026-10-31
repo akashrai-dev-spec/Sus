@@ -29,6 +29,7 @@ export default function OnlineGameRoomPage() {
     isConnected,
     profile,
     roomState,
+    syncRoom,
     privateRole,
     accusationResult,
     error,
@@ -47,6 +48,7 @@ export default function OnlineGameRoomPage() {
   const [submittingClue, setSubmittingClue] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
+  const [syncFailed, setSyncFailed] = useState(false);
 
   // Accusation modal
   const [accuseModalOpen, setAccuseModalOpen] = useState(false);
@@ -58,6 +60,22 @@ export default function OnlineGameRoomPage() {
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
+  // Automatic room state synchronization
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isConnected && roomId && (!roomState || roomState.id !== roomId)) {
+      syncRoom(roomId).catch((err) => {
+        console.warn("Failed to sync room state:", err.message);
+      });
+      timer = setTimeout(() => {
+        if (!roomState || roomState.id !== roomId) {
+          setSyncFailed(true);
+        }
+      }, 7000);
+    }
+    return () => clearTimeout(timer);
+  }, [isConnected, roomId, roomState, syncRoom]);
+
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [roomState?.gameState?.clues]);
@@ -65,9 +83,23 @@ export default function OnlineGameRoomPage() {
   if (!isConnected || !roomState) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <div className="h-8 w-8 rounded-full border-2 border-crimson border-t-transparent animate-spin mb-4" />
-        <h2 className="text-xl font-bold text-white mb-1">Connecting to Room...</h2>
-        <p className="text-xs text-mute mb-6">Synchronizing game state with server.</p>
+        {!syncFailed ? (
+          <>
+            <div className="h-8 w-8 rounded-full border-2 border-crimson border-t-transparent animate-spin mb-4" />
+            <h2 className="text-xl font-bold text-white mb-1">Connecting to Room...</h2>
+            <p className="text-xs text-mute mb-6">Synchronizing game state with server.</p>
+          </>
+        ) : (
+          <>
+            <div className="h-10 w-10 rounded-full bg-crimson/20 border border-crimson/40 flex items-center justify-center text-crimson-bright font-bold mb-4">
+              !
+            </div>
+            <h2 className="text-xl font-bold text-white mb-1">Room Not Found or Closed</h2>
+            <p className="text-xs text-mute mb-6 max-w-xs">
+              Unable to reach this room. It may have expired, or the PIN may be required.
+            </p>
+          </>
+        )}
         <Link
           href="/play/rooms"
           className="text-xs font-bold text-crimson-bright hover:underline"
