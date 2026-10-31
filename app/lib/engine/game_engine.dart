@@ -37,7 +37,8 @@ class GameEngine {
     if (customImposterIds != null) {
       imposterIds = List.from(customImposterIds);
     } else {
-      final shuffled = List<GamePlayer>.from(players)..shuffle(math.Random());
+      final secureRng = math.Random.secure();
+      final shuffled = List<GamePlayer>.from(players)..shuffle(secureRng);
       imposterIds = shuffled.take(imposterCount).map((p) => p.id).toList();
     }
 
@@ -56,7 +57,8 @@ class GameEngine {
     if (customOrder != null) {
       order = List.from(customOrder);
     } else {
-      order = assignedPlayers.map((p) => p.id).toList()..shuffle(math.Random());
+      final secureRng = math.Random.secure();
+      order = assignedPlayers.map((p) => p.id).toList()..shuffle(secureRng);
     }
 
     return GameState(

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -49,11 +50,11 @@ export function pickSecretWord(
 
   const selectedCategory =
     categorySetting === "Random" || !bank[categorySetting]
-      ? availableCategories[Math.floor(Math.random() * availableCategories.length)]
+      ? availableCategories[crypto.randomInt(0, availableCategories.length)]
       : categorySetting;
 
   const words = Object.keys(bank[selectedCategory]);
-  const selectedWord = words[Math.floor(Math.random() * words.length)];
+  const selectedWord = words[crypto.randomInt(0, words.length)];
 
   return { category: selectedCategory, word: selectedWord };
 }

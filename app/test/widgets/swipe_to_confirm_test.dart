@@ -69,4 +69,39 @@ void main() {
 
     expect(confirmed, isFalse);
   });
+
+  testWidgets('SwipeToConfirm springs back on partial drag without confirming', (tester) async {
+    bool confirmed = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(
+          extensions: const [SusColors.dark],
+        ),
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 300,
+              child: SwipeToConfirm(
+                label: 'Confirm Action',
+                onConfirm: () => confirmed = true,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final knobFinder = find.text('›');
+    final initialKnobRect = tester.getRect(knobFinder);
+
+    // Drag halfway (80 px) and release
+    await tester.drag(knobFinder, const Offset(80, 0));
+    // Animation kicks in to spring back
+    await tester.pumpAndSettle();
+
+    expect(confirmed, isFalse);
+    final settledKnobRect = tester.getRect(knobFinder);
+    expect(settledKnobRect.left, closeTo(initialKnobRect.left, 0.5));
+  });
 }

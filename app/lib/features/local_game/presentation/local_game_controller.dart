@@ -77,14 +77,15 @@ class LocalGameNotifier extends StateNotifier<LocalGameProgress?> {
           : 'Custom';
       chosenWord = customWord.trim();
     } else {
+      final secureRng = math.Random.secure();
       final categories = _cachedWordBank!.keys.toList();
       chosenCategory = category == 'Random' || !_cachedWordBank!.containsKey(category)
-          ? categories[math.Random().nextInt(categories.length)]
+          ? categories[secureRng.nextInt(categories.length)]
           : category;
 
       final wordsMap = _cachedWordBank![chosenCategory] as Map<String, dynamic>;
       final words = wordsMap.keys.toList();
-      chosenWord = words[math.Random().nextInt(words.length)];
+      chosenWord = words[secureRng.nextInt(words.length)];
     }
 
     final players = playerNames.asMap().entries.map((e) {

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { WordFilter } from "../util/wordFilter.js";
 import {
   AccusationResult,
@@ -17,6 +18,20 @@ export class GameEngineError extends Error {
     super(message);
     this.name = "GameEngineError";
   }
+}
+
+/**
+ * Performs a cryptographically secure, unbiased Fisher-Yates (Knuth) shuffle.
+ */
+export function secureShuffle<T>(items: readonly T[]): T[] {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(0, i + 1);
+    const temp = result[i];
+    result[i] = result[j];
+    result[j] = temp;
+  }
+  return result;
 }
 
 export class GameEngine {
@@ -69,7 +84,7 @@ export class GameEngine {
     if (customImposterIds) {
       imposterIds = [...customImposterIds];
     } else {
-      const shuffled = [...players].sort(() => Math.random() - 0.5);
+      const shuffled = secureShuffle(players);
       imposterIds = shuffled.slice(0, imposterCount).map((p) => p.id);
     }
 
@@ -87,7 +102,7 @@ export class GameEngine {
 
     const order = customOrder
       ? [...customOrder]
-      : assignedPlayers.map((p) => p.id).sort(() => Math.random() - 0.5);
+      : secureShuffle(assignedPlayers.map((p) => p.id));
 
     return {
       players: assignedPlayers,

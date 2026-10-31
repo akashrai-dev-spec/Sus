@@ -9,26 +9,35 @@
 </p>
 
 <p align="center">
-  <em>A tense, dark, minimalist social deduction party game for 3 to 12 players.</em>
+  <em>A tense, minimalist social deduction party game for 3 to 12 players.</em>
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#how-to-play">How to Play</a> •
+  <a href="#hosting-the-server">Host on Render</a> •
+  <a href="#building-the-android-apk">Build Android APK</a> •
+  <a href="#developer-guide">Development</a> •
+  <a href="#architecture">Architecture</a>
 </p>
 
 ---
 
 ## Overview
 
-**Sus** is a cross-platform social deduction game built as a production-quality monorepo featuring a **Flutter** client (Linux desktop, Android, iOS) and an authoritative **Node.js + TypeScript Socket.IO** server.
+**Sus** is a cross-platform social deduction party game built as a production-quality monorepo featuring a **Flutter** client (Linux desktop, Android, iOS) and an authoritative **Node.js + TypeScript Socket.IO** server.
 
 Players are assigned roles secretly: normal players receive a secret word, while the imposter receives only the category. Through round-robin clue giving, tactical bluffing, instant accusations, and high-stakes imposter word guesses, normal players strive to unmask the imposter before the imposter bluffs their way to victory or guesses the secret word!
 
 ---
 
-## Screenshots
+## Visual Showcase
 
-| Home | Mode Selection | Open Rooms |
+| Home Screen | Pick How to Play | Open Room Browser |
 | :---: | :---: | :---: |
 | ![Home](docs/screenshots/home_screen.png) | ![Modes](docs/screenshots/mode_screen.png) | ![Rooms](docs/screenshots/rooms_screen.png) |
 
-| Create Game | Profile Screen | Rules & Guide |
+| Create Game | Profile Customizer | How Sus Works |
 | :---: | :---: | :---: |
 | ![Create](docs/screenshots/create_game_screen.png) | ![Profile](docs/screenshots/profile_screen.png) | ![Rules](docs/screenshots/rules_screen.png) |
 
@@ -38,149 +47,146 @@ Players are assigned roles secretly: normal players receive a secret word, while
 
 ---
 
-## Core Mechanics
+## Quick Start
 
-- **Player Count**: 3 to 12 players.
-- **Roles**: Secretly assigned by the engine (1 to 3 imposters, capped so imposters remain a minority: `min(setting, max(1, floor((n-1)/2)))`).
-- **Secret Distribution**: Normal players receive the secret word. Imposters receive only the category.
-- **Discussion Rounds**: Fixed random speaking order. Each player gives one clue without saying the word.
-- **Instant Accusation**: Any player can trigger an accusation. If an imposter is caught, they are eliminated. If a normal player is falsely accused, the accuser permanently loses their accusation privilege.
-- **Imposter Guess**: At any time, an imposter can attempt to guess the secret word. A correct guess secures an immediate imposter victory.
-- **Final Vote**: If rounds elapse without catching the imposter, a final group vote decides the outcome.
+### 🎮 Option 1: Play Right Now (No Setup Required)
+Want to play immediately with friends in the same room using a single phone or laptop?
+1. Launch the app on any device.
+2. Select **Play** ››› on the home screen.
+3. Choose **Create a game** > select **Local** mode.
+4. Add your friends' names and pass the phone around to view your secret role cards!
 
----
+### 📱 Option 2: Install on Your Android Phone
+Want the app installed on your Android device?
+- Read the simple [**Android APK Build & Install Guide**](docs/BUILD_APK.md).
+- Run `flutter build apk --release` to generate your `.apk`.
 
-## Key Features
-
-1. **Dual Game Modes**:
-   - **Online Multiplayer**: Real-time Socket.IO rooms with 4-digit PIN locks, rate-limiting, and automatic host migration.
-   - **Local Pass-and-Play**: Completely offline single-device mode with privacy handover gates and hold-to-reveal role cards.
-2. **Strict Anti-Cheat Architecture**:
-   - Server-authoritative state machine.
-   - The secret word is **never** broadcast or leaked to imposter sockets; only unicast to normal sockets over private events.
-3. **Dual Engine Parity**:
-   - Pure Dart state machine in `app/lib/engine` for offline play.
-   - Pure TypeScript state machine in `server/src/game` for online play.
-   - Verified against shared JSON fixtures in `docs/fixtures/`.
-4. **Signature Design System**:
-   - Japanese oni-mask aesthetic with dark charcoal (`#161616`), panel (`#222222`), line (`#333333`), and crimson accents (`#9A0F28`).
-   - Custom `SwipeToConfirm` primary interaction controls with haptic feedback.
-   - Inter typography scale bundled locally as static TTF assets (no runtime Google Fonts network fetches).
-   - Linux platform-safe abstraction layer (safe no-op haptics and wakelocks).
+### 🌐 Option 3: Host Your Own Multiplayer Server (100% Free)
+Want to play online across different houses or cities?
+- Read the [**Production Server Hosting Guide**](docs/HOSTING.md).
+- We recommend **Render**: deploy the backend server in 1 click with zero devops.
 
 ---
 
-## Documentation
+## How to Play
 
-- [**Architecture & State Machine**](docs/ARCHITECTURE.md): Deep dive into the monorepo design, state transitions, security boundary, and reliability guarantees.
-- [**Socket.IO Protocol**](docs/PROTOCOL.md): Full wire specification for `/game` namespace events, schemas, and error codes.
-- [**Design System**](docs/DESIGN.md): Visual design tokens, typography, component guidelines, and accessibility standards.
-- [**Architectural Decision Records**](docs/DECISIONS.md): ADRs documenting all technical choices.
+### The Setup
+1. **Join a Room**: 3 to 12 players gather in an online room or pass around a single device in local mode.
+2. **Secret Roles**:
+   - **Normal Players**: Know both the **Secret Word** and Category.
+   - **Imposters**: Only see the **Category**. They do NOT know the word!
 
----
-
-## Project Structure
-
-```
-sus-game/
-├── app/                      # Flutter client (Linux, Android, iOS)
-│   ├── assets/               # Brand SVGs, bundled Inter fonts, offline word bank
-│   ├── lib/
-│   │   ├── core/             # Theme, router, platform abstractions, UI primitives
-│   │   ├── engine/           # Pure Dart game state machine (zero Flutter imports)
-│   │   ├── features/         # Feature modules (home, profile, rooms, lobby, games)
-│   │   └── main.dart         # Client entry point
-│   └── test/                 # Pure engine tests, widget tests, screenshot harness
-├── server/                   # Authoritative Node.js + TypeScript server
-│   ├── src/
-│   │   ├── game/             # TypeScript game engine mirror
-│   │   ├── rooms/            # Room manager & Argon2 PIN hashing
-│   │   ├── socket/           # Socket.IO handlers & Zod validation
-│   │   └── words/            # Authoritative server-side word bank
-│   └── test/                 # Engine unit tests & Socket.IO integration tests
-├── docs/                     # Specifications, ADRs, test fixtures, and screenshots
-│   ├── fixtures/             # Shared JSON game scenario test fixtures
-│   └── screenshots/          # Rendered PNG screenshots of all app views
-├── Makefile                  # Build, test, and development shortcuts
-└── docker-compose.yml        # Containerized server orchestration
-```
+### The Gameplay Loop
+1. **Discussion & Clues**: Players take turns in a fixed random speaking order, giving exactly **one clue** about the secret word.
+   - Normal players give subtle clues that hint at the word without making it obvious.
+   - Imposters listen carefully, bluff their clue to blend in, and try to deduce the secret word.
+2. **Instant Accusation**:
+   - At any time, a player can slide **Accuse**.
+   - The game pauses and the accused player's role is revealed.
+   - **Caught Imposter**: The imposter is eliminated! If all imposters are caught, normal players win.
+   - **Innocent Player**: The accusation fails and the accuser permanently loses their accusation privilege for the rest of the game!
+3. **Imposter Word Guess**:
+   - Imposters can attempt to guess the secret word.
+   - If an imposter correctly guesses the word, the imposters **win immediately**!
+4. **Final Vote**:
+   - If all discussion rounds conclude without catching the imposter, the group holds a final vote.
 
 ---
 
-## Getting Started
+## Step-by-Step Execution Guide
 
-### Prerequisites
-
-- **Node.js**: v20 LTS or higher (`npm` v10+)
-- **Flutter**: 3.24+ (Channel stable) with Dart 3
-- **Linux Build Dependencies** (for Linux desktop execution):
+### 1. Prerequisites
+- **Node.js** (v20 LTS or higher): [nodejs.org](https://nodejs.org/)
+- **Flutter SDK** (3.24+): [flutter.dev](https://flutter.dev/)
+- **Linux desktop build tools** (only if running natively on Linux):
   ```bash
   sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
   ```
 
-### Quick Setup
-
-Clone the repository and install all dependencies:
-
+### 2. Setup Dependencies
+Clone the repository and install all packages:
 ```bash
+git clone https://github.com/akashrai-dev-spec/Sus.git
+cd Sus
 make setup
 ```
 
----
-
-## Running the Project
-
-### 1. Start the Server
-
+### 3. Start the Server Locally
 ```bash
-# In development mode (auto-reload with tsx):
-make server-dev
-
-# Or directly with npm:
 cd server
 npm run dev
 ```
-The server will start listening on port `3000` (configurable via `PORT` environment variable).
+The server will start listening at `http://localhost:3000`. You can confirm it is running by visiting `http://localhost:3000/health`.
 
-### 2. Run the Flutter App
-
+### 4. Run the Flutter App
+In a new terminal window:
 ```bash
-# Run on Linux desktop:
-make app-run-linux
-
-# Or connect to a custom server during debug:
 cd app
-flutter run -d linux --dart-define=SERVER_URL=http://localhost:3000
+flutter run -d linux
 ```
-
-### 3. Docker Deployment
-
-To spin up the game server inside Docker:
-
-```bash
-make docker-up
-```
+*(Or specify `-d chrome` for web, or `-d <device_id>` for connected phones).*
 
 ---
 
-## Verification & Testing
+## Hosting the Server
 
-Every component in Sus is verified against strict testing suites:
+Looking for a place to host the server for you and your friends?
+
+### Recommended Platform: [Render](https://render.com)
+Render offers a **free tier**, full **WebSocket/Socket.IO** support, free **HTTPS/SSL**, and automatic redeployments on every `git push`.
+
+Because this repository contains a [`render.yaml`](render.yaml) blueprint, you can deploy in minutes:
+1. Log in to [render.com](https://render.com).
+2. Click **New +** > **Blueprint**.
+3. Select your GitHub repository (`Sus`).
+4. Click **Apply**!
+
+👉 Read the full [**Production Hosting Guide**](docs/HOSTING.md) for complete details on Render, Railway, and VPS / Docker deployments.
+
+---
+
+## Building the Android APK
+
+You can build a standalone `.apk` file to install on any Android phone without publishing to Google Play:
 
 ```bash
-# Run both server (vitest) and Flutter tests:
+cd app
+flutter build apk --release --dart-define=SERVER_URL=https://your-server.onrender.com
+```
+
+The output file is generated at:
+```
+app/build/app/outputs/flutter-apk/app-release.apk
+```
+
+👉 Read the step-by-step [**Android APK Build & Install Guide**](docs/BUILD_APK.md) for transferring the file and enabling "Install unknown apps" on Android.
+
+---
+
+## Developer Guide
+
+For developers looking to contribute, write tests, or modify the state machine:
+- [**Developer & Contribution Guide**](docs/DEVELOPMENT.md): Detailed workflows, code generation, linting, and testing.
+- [**Architecture & State Machine**](docs/ARCHITECTURE.md): Deep dive into client and server state machine parity.
+- [**Socket.IO Wire Protocol**](docs/PROTOCOL.md): Specification of all `/game` namespace events, schemas, and rate limits.
+- [**Design System**](docs/DESIGN.md): Aesthetic tokens, typography, and accessibility guidelines.
+- [**Architectural Decisions (ADRs)**](docs/DECISIONS.md): Records of key design and architecture decisions.
+
+---
+
+## Verification & Automated Tests
+
+Run the test suite across both the Flutter client and the Node.js server:
+
+```bash
+# Run all tests (unit, widget, integration):
 make test
 
 # Run code linters (ESLint + flutter analyze):
 make lint
 
-# Compile the standalone Linux release bundle:
+# Compile the standalone Linux executable:
 make build-linux
-```
-
-The release executable will be available at:
-```bash
-./app/build/linux/x64/release/bundle/sus
 ```
 
 ---
@@ -188,3 +194,4 @@ The release executable will be available at:
 ## License
 
 MIT License. Designed and crafted for social gaming enthusiasts.
+See [LICENSE](LICENSE) for details.

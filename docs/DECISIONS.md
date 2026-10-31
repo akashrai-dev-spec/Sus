@@ -51,3 +51,29 @@
 - **Context**: `build_runner` and `riverpod_generator` encountered a transitive dependency conflict between `analyzer` 7.6.0 and `analyzer_plugin` 0.12.0.
 - **Decision**: Pinned `analyzer_plugin: ^0.13.0` in `dependency_overrides` within `app/pubspec.yaml`.
 - **Consequences**: `dart run build_runner build -d`, `flutter analyze`, and `flutter test` pass with zero analyzer warnings and 100% build success.
+
+## ADR 009: SwipeToConfirm Animated Spring-Back & Drag Cancellation
+- **Status**: Accepted
+- **Context**: When a user partially dragged the `SwipeToConfirm` knob without reaching the 85% confirmation threshold or canceled the drag, the widget state did not animate back to 0.0 because `_animController` was not wired to an `AnimatedBuilder`, leaving the knob visually stranded in the middle.
+- **Decision**: Refactor `SwipeToConfirm` to drive progress directly through `_animController` inside an `AnimatedBuilder`. Attach spring-back animations on drag release (`Curves.easeOutCubic`), drag cancel, and tap events on both the track and the knob.
+- **Consequences**: Tactile, fluid interaction where releasing anywhere prior to 85% smoothly bounces the knob back to the origin, eliminating any stuck states.
+
+## ADR 010: Render Infrastructure as Code Blueprint & Universal APK Packaging
+- **Status**: Accepted
+- **Context**: Multiplayer hosting and mobile app installation needed to be accessible to non-technical users and hosts.
+- **Decision**: Provide a `render.yaml` blueprint defining a free Web Service with native WebSocket support and automatic `/health` checks. Document Android APK generation with `--split-per-abi` and custom `--dart-define=SERVER_URL` in dedicated non-tech-friendly guides.
+- **Consequences**: 1-click cloud server deployment on Render and seamless standalone APK sideloading without Google Play Store dependency.
+
+## ADR 011: Cryptographically Secure Unbiased Role Permutations
+- **Status**: Accepted
+- **Context**: Across consecutive rounds, sorting with non-transitive `Math.random() - 0.5` in V8 produced an acute 43% selection bias towards the first player (host/player 1) remaining at index 0.
+- **Decision**: Implement true Knuth Fisher-Yates shuffle using `crypto.randomInt` in TypeScript and `Random.secure()` in Dart.
+- **Consequences**: Provably uniform $1/N$ probability for each player in every match, eliminating consecutive-round player 1 clustering.
+
+## ADR 012: Dynamic Imposter Button Scaling & Custom Discussion Rounds (up to 10)
+- **Status**: Accepted
+- **Context**: Imposter settings needed to visually scale with group size to avoid host confusion, and hosts required granular control over discussion lengths beyond 3 rounds.
+- **Decision**: Dynamically render imposter choice buttons (`1`, `1..2`, or `1..3`) according to current player count: `((n-1)/2).clamp(1, 3)`. Add a dedicated 'Custom' option to the discussion rounds selector expanding to a slider and steppers allowing 1 to 10 rounds, validated end-to-end through Zod and engine state machines.
+- **Consequences**: Seamless host configuration with foolproof limits preventing game-breaking minority/majority violations.
+
+
