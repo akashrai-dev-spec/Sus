@@ -46,8 +46,13 @@ class UserProfile {
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     final rawUrl = json['serverUrl'] as String?;
-    // Default to the live Render cloud server unless a custom non-localhost URL was saved
-    final serverUrl = (rawUrl != null && rawUrl.isNotEmpty && rawUrl != 'http://localhost:3000')
+    final isLocalhost = rawUrl == null ||
+        rawUrl.isEmpty ||
+        rawUrl.contains('localhost') ||
+        rawUrl.contains('127.0.0.1');
+
+    // Default to the live Render cloud server unless a custom non-localhost URL was explicitly configured
+    final serverUrl = !isLocalhost
         ? rawUrl
         : const String.fromEnvironment(
             'SERVER_URL',

@@ -25,26 +25,42 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchRooms();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _fetchRooms();
+      }
+    });
   }
 
   Future<void> _fetchRooms() async {
-    setState(() => _isLoading = true);
-    final socket = ref.read(socketServiceProvider);
-    final res = await socket.listRooms();
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        if (res['ok'] == true && res['data'] is List) {
-          _rooms = (res['data'] as List)
-              .map((e) => Map<String, dynamic>.from(e as Map))
-              .toList();
-        }
-      });
+    if (mounted && !_isLoading) {
+      setState(() => _isLoading = true);
+    }
+    try {
+      final controller = ref.read(onlineGameControllerProvider.notifier);
+      await controller.ensureConnected();
+      final socket = ref.read(socketServiceProvider);
+      final res = await socket.listRooms();
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          if (res['ok'] == true && res['data'] is List) {
+            _rooms = (res['data'] as List)
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _showPinDialog(Map<String, dynamic> room) async {
+    final parentContext = context;
+    final pinKey = GlobalKey<PinFieldState>();
     final joined = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -54,18 +70,17 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
       ),
       builder: (sheetContext) {
         String enteredPin = '';
-        final pinKey = GlobalKey<PinFieldState>();
 
         return StatefulBuilder(
-          builder: (context, setSheetState) {
-            final colors = context.colors;
+          builder: (modalContext, setSheetState) {
+            final colors = modalContext.colors;
 
             return Padding(
               padding: EdgeInsets.only(
                 left: 22,
                 right: 22,
                 top: 24,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 28,
+                bottom: MediaQuery.of(modalContext).viewInsets.bottom + 28,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -107,10 +122,12 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                       } else {
                         if (sheetContext.mounted) {
                           pinKey.currentState?.shake();
-                          AppToast.show(
-                            context,
-                            (res['message'] as String?) ?? 'Wrong PIN. Try again.',
-                          );
+                          if (parentContext.mounted) {
+                            AppToast.show(
+                              parentContext,
+                              (res['message'] as String?) ?? 'Wrong PIN. Try again.',
+                            );
+                          }
                         }
                       }
                     },
@@ -151,7 +168,47 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
               'Every room is locked with a PIN. Choose a room to enter.',
               style: SusTypography.body.copyWith(color: colors.mute),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
+            InkWell(
+              onTap: () => context.push('/profile'),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: colors.panel,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colors.line),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.cloud_done_rounded,
+                      size: 14,
+                      color: colors.crimson,
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        profile.serverUrl.replaceAll('https://', '').replaceAll('http://', ''),
+                        style: SusTypography.caption.copyWith(
+                          color: colors.bone,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '(tap to change)',
+                      style: SusTypography.caption.copyWith(color: colors.mute, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             Expanded(
               child: _isLoading
                   ? Center(
@@ -254,22 +311,40 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () => context.push('/create'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colors.crimson,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _fetchRooms,
+                icon: const Icon(Icons.refresh_rounded, size: 16),
+                label: const Text('Refresh'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colors.bone,
+                  side: BorderSide(color: colors.line),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            child: Text(
-              'Create a game',
-              style: SusTypography.body.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
+              ElevatedButton(
+                onPressed: () => context.push('/create'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.crimson,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                child: Text(
+                  'Create a game',
+                  style: SusTypography.body.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),

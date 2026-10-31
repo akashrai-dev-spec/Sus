@@ -66,12 +66,15 @@ export default function OnlineGameRoomPage() {
     if (isConnected && roomId && (!roomState || roomState.id !== roomId)) {
       syncRoom(roomId).catch((err) => {
         console.warn("Failed to sync room state:", err.message);
+        if (err.message.toLowerCase().includes("not found") || err.message.toLowerCase().includes("closed")) {
+          setSyncFailed(true);
+        }
       });
       timer = setTimeout(() => {
         if (!roomState || roomState.id !== roomId) {
           setSyncFailed(true);
         }
-      }, 7000);
+      }, 5000);
     }
     return () => clearTimeout(timer);
   }, [isConnected, roomId, roomState, syncRoom]);

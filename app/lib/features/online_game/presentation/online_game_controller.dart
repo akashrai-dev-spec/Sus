@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/presentation/profile_controller.dart';
@@ -79,6 +80,7 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
 
   final SocketService _socket;
   final UserProfile _profile;
+  final List<StreamSubscription<dynamic>> _subscriptions = [];
 
   void _init() {
     _socket.connect(
@@ -88,53 +90,90 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
       resumeToken: _profile.resumeToken,
     );
 
-    _socket.onConnectionChanged.listen((connected) {
-      state = state.copyWith(isConnected: connected);
-    });
+    _subscriptions.add(
+      _socket.onConnectionChanged.listen((connected) {
+        if (mounted) {
+          state = state.copyWith(isConnected: connected);
+        }
+      }),
+    );
 
-    _socket.onRoomState.listen((data) {
-      final rawClues = data['clues'] as List?;
-      final clues = rawClues != null
-          ? rawClues.map((e) => Map<String, dynamic>.from(e as Map)).toList()
-          : state.liveClues;
+    _subscriptions.add(
+      _socket.onRoomState.listen((data) {
+        if (!mounted) return;
+        final rawClues = data['clues'] as List?;
+        final clues = rawClues != null
+            ? rawClues.map((e) => Map<String, dynamic>.from(e as Map)).toList()
+            : state.liveClues;
 
-      state = state.copyWith(
-        roomState: data,
-        liveClues: clues,
-      );
-    });
+        state = state.copyWith(
+          roomState: data,
+          liveClues: clues,
+        );
+      }),
+    );
 
-    _socket.onRole.listen((data) {
-      state = state.copyWith(
-        myRole: data['role'] as String?,
-        mySecretWord: data['word'] as String?,
-        myCategory: data['category'] as String?,
-      );
-    });
+    _subscriptions.add(
+      _socket.onRole.listen((data) {
+        if (!mounted) return;
+        state = state.copyWith(
+          myRole: data['role'] as String?,
+          mySecretWord: data['word'] as String?,
+          myCategory: data['category'] as String?,
+        );
+      }),
+    );
 
-    _socket.onClue.listen((clue) {
-      state = state.copyWith(
-        liveClues: [...state.liveClues, clue],
-      );
-    });
+    _subscriptions.add(
+      _socket.onClue.listen((clue) {
+        if (!mounted) return;
+        state = state.copyWith(
+          liveClues: [...state.liveClues, clue],
+        );
+      }),
+    );
 
-    _socket.onAccusation.listen((accuse) {
-      state = state.copyWith(latestAccusation: accuse);
-    });
+    _subscriptions.add(
+      _socket.onAccusation.listen((accuse) {
+        if (!mounted) return;
+        state = state.copyWith(latestAccusation: accuse);
+      }),
+    );
 
-    _socket.onEnded.listen((ended) {
-      state = state.copyWith(gameEndedData: ended);
-    });
+    _subscriptions.add(
+      _socket.onEnded.listen((ended) {
+        if (!mounted) return;
+        state = state.copyWith(gameEndedData: ended);
+      }),
+    );
   }
 
-  void ensureConnected() {
-    if (!_socket.isConnected) {
-      _socket.connect(
-        serverUrl: _profile.serverUrl,
-        name: _profile.name,
-        color: _profile.color,
-        resumeToken: _profile.resumeToken,
-      );
+  @override
+  void dispose() {
+    for (final sub in _subscriptions) {
+      sub.cancel();
+    }
+    _subscriptions.clear();
+    super.dispose();
+  }
+
+  Future<bool> ensureConnected() async {
+    if (_socket.isConnected) return true;
+
+    _socket.connect(
+      serverUrl: _profile.serverUrl,
+      name: _profile.name,
+      color: _profile.color,
+      resumeToken: _profile.resumeToken,
+    );
+
+    try {
+      await _socket.onConnectionChanged
+          .firstWhere((connected) => connected)
+          .timeout(const Duration(seconds: 4));
+      return true;
+    } catch (_) {
+      return _socket.isConnected;
     }
   }
 
