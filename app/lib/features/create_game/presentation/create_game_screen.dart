@@ -32,8 +32,25 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
   int _maxPlayers = 6;
   int _imposters = 1;
   int _rounds = 2;
+  bool _isCustomRounds = false;
+  int _customRounds = 4;
   int _guessAttempts = 1;
   String _category = 'Random';
+
+  int get _currentPlayerCount =>
+      _mode == 'Online' ? _maxPlayers : _localNameControllers.length;
+
+  int get _maxAllowedImposters {
+    final count = _currentPlayerCount;
+    return ((count - 1) ~/ 2).clamp(1, 3);
+  }
+
+  void _clampImposters() {
+    final maxImp = _maxAllowedImposters;
+    if (_imposters > maxImp) {
+      _imposters = maxImp;
+    }
+  }
 
   // Local fields
   List<TextEditingController> _localNameControllers = [];
@@ -66,6 +83,7 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
         TextEditingController(text: 'Player ${_localNameControllers.length + 1}'),
       );
     }
+    _clampImposters();
   }
 
   @override
@@ -86,6 +104,7 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
       _localNameControllers.add(
         TextEditingController(text: 'Player ${_localNameControllers.length + 1}'),
       );
+      _clampImposters();
     });
   }
 
@@ -94,6 +113,7 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
     setState(() {
       final removed = _localNameControllers.removeAt(index);
       removed.dispose();
+      _clampImposters();
     });
   }
 
@@ -325,7 +345,10 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
               SegmentedChoice<String>(
                 options: const ['Online', 'Local'],
                 selected: _mode,
-                onChanged: (val) => setState(() => _mode = val),
+                onChanged: (val) => setState(() {
+                  _mode = val;
+                  _clampImposters();
+                }),
               ),
               const SizedBox(height: 6),
               Text(
@@ -350,10 +373,22 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
               ),
               const SizedBox(height: 6),
               SegmentedChoice<int>(
-                options: const [1, 2, 3],
-                selected: _imposters,
+                options: List.generate(_maxAllowedImposters, (i) => i + 1),
+                selected: _imposters.clamp(1, _maxAllowedImposters),
                 onChanged: (val) => setState(() => _imposters = val),
               ),
+              if (_maxAllowedImposters < 3) ...[
+                const SizedBox(height: 4),
+                Text(
+                  _maxAllowedImposters == 1
+                      ? 'Only 1 imposter allowed for $_currentPlayerCount players (requires 5+ players for 2)'
+                      : 'Up to 2 imposters allowed for $_currentPlayerCount players (requires 7+ players for 3)',
+                  style: SusTypography.caption.copyWith(
+                    color: colors.mute,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
 
               // Discussion rounds
@@ -362,11 +397,135 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
                 style: SusTypography.caption.copyWith(color: colors.mute),
               ),
               const SizedBox(height: 6),
-              SegmentedChoice<int>(
-                options: const [1, 2, 3],
-                selected: _rounds,
-                onChanged: (val) => setState(() => _rounds = val),
+              SegmentedChoice<String>(
+                options: const ['1', '2', '3', 'Custom'],
+                selected: _isCustomRounds ? 'Custom' : '$_rounds',
+                onChanged: (val) {
+                  setState(() {
+                    if (val == 'Custom') {
+                      _isCustomRounds = true;
+                      _rounds = _customRounds;
+                    } else {
+                      _isCustomRounds = false;
+                      _rounds = int.parse(val);
+                    }
+                  });
+                },
+                labelBuilder: (opt) {
+                  if (opt == 'Custom' && _isCustomRounds) {
+                    return 'Custom ($_rounds)';
+                  }
+                  return opt;
+                },
               ),
+              if (_isCustomRounds) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: colors.panel,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colors.crimson, width: 1.5),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Custom discussion rounds',
+                            style: SusTypography.body.copyWith(
+                              color: colors.bone,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colors.crimson.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: colors.crimson),
+                            ),
+                            child: Text(
+                              '$_rounds ${_rounds == 1 ? "round" : "rounds"}',
+                              style: SusTypography.caption.copyWith(
+                                color: colors.crimsonBright,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon:
+                                const Icon(Icons.remove_circle_outline_rounded),
+                            color: _rounds > 1 ? colors.bone : colors.mute,
+                            tooltip: 'Decrease rounds',
+                            onPressed: _rounds > 1
+                                ? () => setState(() {
+                                      _rounds--;
+                                      _customRounds = _rounds;
+                                    })
+                                : null,
+                          ),
+                          Expanded(
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                activeTrackColor: colors.crimson,
+                                inactiveTrackColor: colors.line,
+                                thumbColor: colors.crimsonBright,
+                                overlayColor: colors.crimson.withAlpha(40),
+                                trackHeight: 4,
+                              ),
+                              child: Slider(
+                                value: _rounds.toDouble().clamp(1.0, 10.0),
+                                min: 1,
+                                max: 10,
+                                divisions: 9,
+                                label: '$_rounds',
+                                onChanged: (val) {
+                                  setState(() {
+                                    _rounds = val.round();
+                                    _customRounds = _rounds;
+                                  });
+                                },
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline_rounded),
+                            color: _rounds < 10 ? colors.bone : colors.mute,
+                            tooltip: 'Increase rounds',
+                            onPressed: _rounds < 10
+                                ? () => setState(() {
+                                      _rounds++;
+                                      _customRounds = _rounds;
+                                    })
+                                : null,
+                          ),
+                        ],
+                      ),
+                      Center(
+                        child: Text(
+                          'Rounds can be set between 1 and 10 (maximum 10).',
+                          style: SusTypography.caption.copyWith(
+                            color: colors.mute,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
 
               // Guess attempts
@@ -541,7 +700,12 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
           min: 3,
           max: 12,
           divisions: 9,
-          onChanged: (val) => setState(() => _maxPlayers = val.toInt()),
+          onChanged: (val) {
+            setState(() {
+              _maxPlayers = val.toInt();
+              _clampImposters();
+            });
+          },
         ),
       ),
     ];

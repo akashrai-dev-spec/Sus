@@ -301,5 +301,62 @@ void main() {
         expect(res, equals(t['expectedForbidden']));
       }
     });
+
+    test('selects imposters with unbiased uniform distribution across repeated starts', () {
+      final players = [
+        const GamePlayer(id: 'p1', name: 'P1'),
+        const GamePlayer(id: 'p2', name: 'P2'),
+        const GamePlayer(id: 'p3', name: 'P3'),
+      ];
+      const settings = GameSettings(
+        maxPlayers: 3,
+        imposters: 1,
+        rounds: 2,
+      );
+
+      final imposterCounts = <String, int>{'p1': 0, 'p2': 0, 'p3': 0};
+      const iterations = 600;
+
+      for (var i = 0; i < iterations; i++) {
+        final state = GameEngine.startGame(
+          players: players,
+          settings: settings,
+          secretWord: 'Apple',
+          category: 'Objects & Food',
+        );
+        final imp = state.players.firstWhere((p) => p.isImposter);
+        imposterCounts[imp.id] = (imposterCounts[imp.id] ?? 0) + 1;
+      }
+
+      // Each player should be picked around ~200 times (between 130 and 270)
+      expect(imposterCounts['p1'], greaterThan(130));
+      expect(imposterCounts['p1'], lessThan(270));
+      expect(imposterCounts['p2'], greaterThan(130));
+      expect(imposterCounts['p2'], lessThan(270));
+      expect(imposterCounts['p3'], greaterThan(130));
+      expect(imposterCounts['p3'], lessThan(270));
+    });
+
+    test('supports custom discussion rounds up to 10', () {
+      final players = [
+        const GamePlayer(id: 'p1', name: 'P1'),
+        const GamePlayer(id: 'p2', name: 'P2'),
+        const GamePlayer(id: 'p3', name: 'P3'),
+      ];
+      const settings = GameSettings(
+        maxPlayers: 3,
+        imposters: 1,
+        rounds: 10,
+      );
+
+      final state = GameEngine.startGame(
+        players: players,
+        settings: settings,
+        secretWord: 'Apple',
+        category: 'Objects & Food',
+      );
+
+      expect(state.settings.rounds, equals(10));
+    });
   });
 }

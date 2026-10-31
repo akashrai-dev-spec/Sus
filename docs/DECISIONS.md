@@ -64,3 +64,16 @@
 - **Decision**: Provide a `render.yaml` blueprint defining a free Web Service with native WebSocket support and automatic `/health` checks. Document Android APK generation with `--split-per-abi` and custom `--dart-define=SERVER_URL` in dedicated non-tech-friendly guides.
 - **Consequences**: 1-click cloud server deployment on Render and seamless standalone APK sideloading without Google Play Store dependency.
 
+## ADR 011: Cryptographically Secure Unbiased Role Permutations
+- **Status**: Accepted
+- **Context**: Across consecutive rounds, sorting with non-transitive `Math.random() - 0.5` in V8 produced an acute 43% selection bias towards the first player (host/player 1) remaining at index 0.
+- **Decision**: Implement true Knuth Fisher-Yates shuffle using `crypto.randomInt` in TypeScript and `Random.secure()` in Dart.
+- **Consequences**: Provably uniform $1/N$ probability for each player in every match, eliminating consecutive-round player 1 clustering.
+
+## ADR 012: Dynamic Imposter Button Scaling & Custom Discussion Rounds (up to 10)
+- **Status**: Accepted
+- **Context**: Imposter settings needed to visually scale with group size to avoid host confusion, and hosts required granular control over discussion lengths beyond 3 rounds.
+- **Decision**: Dynamically render imposter choice buttons (`1`, `1..2`, or `1..3`) according to current player count: `((n-1)/2).clamp(1, 3)`. Add a dedicated 'Custom' option to the discussion rounds selector expanding to a slider and steppers allowing 1 to 10 rounds, validated end-to-end through Zod and engine state machines.
+- **Consequences**: Seamless host configuration with foolproof limits preventing game-breaking minority/majority violations.
+
+
