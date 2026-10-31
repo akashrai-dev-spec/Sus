@@ -24,9 +24,7 @@ class SwipeToConfirm extends StatefulWidget {
 
 class _SwipeToConfirmState extends State<SwipeToConfirm>
     with SingleTickerProviderStateMixin {
-  late AnimationController _animController;
-  double _dragPosition = 0;
-  bool _isDragging = false;
+  late final AnimationController _animController;
   final FocusNode _focusNode = FocusNode();
 
   @override
@@ -34,7 +32,7 @@ class _SwipeToConfirmState extends State<SwipeToConfirm>
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 280),
     );
   }
 
@@ -49,15 +47,19 @@ class _SwipeToConfirmState extends State<SwipeToConfirm>
     if (!widget.enabled) return;
     PlatformFeedback.lightImpact();
     widget.onConfirm();
-    _reset();
+    if (mounted) {
+      _animController.value = 0.0;
+    }
   }
 
-  void _reset() {
+  void _resetToZero() {
     if (!mounted) return;
-    setState(() {
-      _dragPosition = 0;
-      _isDragging = false;
-    });
+    if (_animController.value > 0.0) {
+      _animController.animateTo(
+        0.0,
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   @override
@@ -88,151 +90,157 @@ class _SwipeToConfirmState extends State<SwipeToConfirm>
             builder: (context, constraints) {
               final trackWidth = constraints.maxWidth;
               final knobSize = widget.height - 8;
-              final maxDrag = trackWidth - knobSize - 8;
+              final maxDrag =
+                  (trackWidth - knobSize - 8).clamp(0.0, double.infinity);
 
-              final currentDrag = _isDragging
-                  ? _dragPosition
-                  : _animController.value * maxDrag;
-              final progress = maxDrag > 0 ? (currentDrag / maxDrag).clamp(0.0, 1.0) : 0.0;
-              final labelOpacity = (1.0 - progress * 1.3).clamp(0.0, 1.0);
+              return AnimatedBuilder(
+                animation: _animController,
+                builder: (context, child) {
+                  final progress = _animController.value;
+                  final currentDrag = progress * maxDrag;
+                  final labelOpacity = (1.0 - progress * 1.3).clamp(0.0, 1.0);
 
-              return Container(
-                height: widget.height,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: _focusNode.hasFocus
-                      ? Border.all(color: colors.crimsonBright, width: 2)
-                      : null,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Stack(
-                    alignment: Alignment.centerLeft,
-                    children: [
-                      // Base track in crimson
-                      Container(
-                        color: colors.crimson,
+                  return GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: isDisabled ? null : _resetToZero,
+                    child: Container(
+                      height: widget.height,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: _focusNode.hasFocus
+                            ? Border.all(color: colors.crimsonBright, width: 2)
+                            : null,
                       ),
-
-                      // Progressive fill in crimsonBright
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: (knobSize + 8 + currentDrag).clamp(0.0, trackWidth),
-                        child: Container(
-                          color: colors.crimsonBright,
-                        ),
-                      ),
-
-                      // Label and chevrons
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 48),
-                          child: Opacity(
-                            opacity: labelOpacity,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    widget.label,
-                                    style: SusTypography.body.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Opacity(
-                                  opacity: 0.6,
-                                  child: Text(
-                                    '›››',
-                                    style: SusTypography.body.copyWith(
-                                      color: Colors.white,
-                                      letterSpacing: 2,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [
+                            // Base track in crimson
+                            Container(
+                              color: colors.crimson,
                             ),
-                          ),
-                        ),
-                      ),
 
-                      // Draggable Knob
-                      Positioned(
-                        left: 4 + currentDrag,
-                        top: 4,
-                        child: GestureDetector(
-                          onHorizontalDragStart: isDisabled
-                              ? null
-                              : (_) {
-                                  setState(() {
-                                    _isDragging = true;
-                                    _dragPosition = 0;
-                                  });
-                                },
-                          onHorizontalDragUpdate: isDisabled
-                              ? null
-                              : (details) {
-                                  setState(() {
-                                    _dragPosition = (_dragPosition + details.delta.dx)
-                                        .clamp(0.0, maxDrag);
-                                  });
-                                },
-                          onHorizontalDragEnd: isDisabled
-                              ? null
-                              : (_) {
-                                  if (_dragPosition >= maxDrag * 0.85) {
-                                    _triggerAction();
-                                  } else {
-                                    _animController.value = _dragPosition / maxDrag;
-                                    _animController.animateTo(
-                                      0.0,
-                                      curve: Curves.easeOutBack,
-                                    );
-                                    _reset();
-                                  }
-                                },
-                          child: MouseRegion(
-                            cursor: isDisabled
-                                ? SystemMouseCursors.forbidden
-                                : SystemMouseCursors.grab,
-                            child: Container(
-                              width: knobSize,
-                              height: knobSize,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(11),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
+                            // Progressive fill in crimsonBright
+                            Positioned(
+                              left: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: (knobSize + 8 + currentDrag)
+                                  .clamp(0.0, trackWidth),
+                              child: Container(
+                                color: colors.crimsonBright,
                               ),
-                              child: Center(
-                                child: Text(
-                                  '›',
-                                  style: TextStyle(
-                                    color: colors.crimson,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w900,
-                                    height: 1,
+                            ),
+
+                            // Label and chevrons
+                            Center(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 48),
+                                child: Opacity(
+                                  opacity: labelOpacity,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          widget.label,
+                                          style: SusTypography.body.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Opacity(
+                                        opacity: 0.6,
+                                        child: Text(
+                                          '›››',
+                                          style: SusTypography.body.copyWith(
+                                            color: Colors.white,
+                                            letterSpacing: 2,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
                             ),
-                          ),
+
+                            // Draggable Knob
+                            Positioned(
+                              left: 4 + currentDrag,
+                              top: 4,
+                              child: GestureDetector(
+                                onTap: isDisabled ? null : _resetToZero,
+                                onHorizontalDragStart: isDisabled
+                                    ? null
+                                    : (_) {
+                                        _animController.stop();
+                                      },
+                                onHorizontalDragUpdate: isDisabled
+                                    ? null
+                                    : (details) {
+                                        if (maxDrag <= 0) return;
+                                        _animController.value =
+                                            (_animController.value +
+                                                    details.delta.dx / maxDrag)
+                                                .clamp(0.0, 1.0);
+                                      },
+                                onHorizontalDragEnd: isDisabled
+                                    ? null
+                                    : (_) {
+                                        if (_animController.value >= 0.85) {
+                                          _triggerAction();
+                                        } else {
+                                          _resetToZero();
+                                        }
+                                      },
+                                onHorizontalDragCancel:
+                                    isDisabled ? null : _resetToZero,
+                                child: MouseRegion(
+                                  cursor: isDisabled
+                                      ? SystemMouseCursors.forbidden
+                                      : SystemMouseCursors.grab,
+                                  child: Container(
+                                    width: knobSize,
+                                    height: knobSize,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(11),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Colors.black26,
+                                          blurRadius: 4,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '›',
+                                        style: TextStyle(
+                                          color: colors.crimson,
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.w900,
+                                          height: 1,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               );
             },
           ),
