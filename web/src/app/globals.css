@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0c0c0c;
+  --ink: #161616;
+  --panel: #222222;
+  --panel-dark: #1d1d1d;
+  --line: #333333;
+  --crimson: #9a0f28;
+  --crimson-bright: #b5173a;
+  --crimson-glow: #e11d48;
+  --bone: #f4f4f4;
+  --mute: #9a9a9a;
+  --grey: #d9d9d9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--background);
+  color: var(--bone);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar hiding globally as requested */
+::-webkit-scrollbar {
+  display: none;
+}
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Cyber ambient background lighting */
+.ambient-glow {
+  background: radial-gradient(
+    circle at 50% 25%,
+    rgba(154, 15, 40, 0.18) 0%,
+    rgba(181, 23, 58, 0.08) 35%,
+    transparent 70%
+  );
+}
+
+.glass-panel {
+  background: rgba(34, 34, 34, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-glow {
+  background: rgba(29, 29, 29, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(181, 23, 58, 0.35);
+  box-shadow: 0 8px 32px 0 rgba(154, 15, 40, 0.15);
+}
+
+.button-press {
+  transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.button-press:active {
+  transform: scale(0.97);
+}
+
+/* Slide to confirm progress track */
+.slide-track {
+  background: linear-gradient(
+    90deg,
+    var(--crimson-bright) calc(var(--progress, 0) * 100%),
+    var(--crimson) 0%
+  );
+}
