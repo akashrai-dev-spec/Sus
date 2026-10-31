@@ -186,7 +186,8 @@ export default function LocalGamePage() {
     }
 
     // Normal discussion accusation
-    const actingAccuser = accuserId || phase.currentSpeakerId;
+    const actingAccuser =
+      accuserId || (phase.name === "discussion" ? phase.currentSpeakerId : gameState.players[0].id);
     const withAccuse = WebGameEngine.startAccusation(gameState, {
       accuserId: actingAccuser,
       targetId: accusedId,
