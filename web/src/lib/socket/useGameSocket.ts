@@ -74,8 +74,13 @@ export function useGameSocket() {
       setError(err?.message || "An unexpected game error occurred.");
     }
 
+    function onConnectError(err: Error) {
+      console.warn("Socket connect error:", err.message);
+    }
+
     s.on("connect", onConnect);
     s.on("disconnect", onDisconnect);
+    s.on("connect_error", onConnectError);
     s.on("room:state", onRoomState);
     s.on("game:role", onGameRole);
     s.on("accuse:result", onAccuseResult);
@@ -88,6 +93,7 @@ export function useGameSocket() {
     return () => {
       s.off("connect", onConnect);
       s.off("disconnect", onDisconnect);
+      s.off("connect_error", onConnectError);
       s.off("room:state", onRoomState);
       s.off("game:role", onGameRole);
       s.off("accuse:result", onAccuseResult);
