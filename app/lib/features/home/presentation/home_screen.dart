@@ -149,6 +149,62 @@ class HomeScreen extends ConsumerWidget {
                 ).animate().fadeIn(delay: 400.ms, duration: 400.ms),
 
                 const SizedBox(height: 16),
+
+                // Compliance & Legal Footer
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(
+                      onPressed: () => context.push('/terms'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Terms',
+                        style: SusTypography.caption.copyWith(
+                          color: colors.mute,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    Text('•', style: TextStyle(color: colors.mute, fontSize: 10)),
+                    TextButton(
+                      onPressed: () => context.push('/privacy'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Privacy',
+                        style: SusTypography.caption.copyWith(
+                          color: colors.mute,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    Text('•', style: TextStyle(color: colors.mute, fontSize: 10)),
+                    TextButton(
+                      onPressed: () => context.push('/legal'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Legal Notice',
+                        style: SusTypography.caption.copyWith(
+                          color: colors.mute,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 450.ms, duration: 400.ms),
+
+                const SizedBox(height: 12),
               ],
             ),
           ),

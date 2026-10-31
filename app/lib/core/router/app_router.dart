@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/create_game/presentation/create_game_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/legal/presentation/legal_screens.dart';
 import '../../features/lobby/presentation/lobby_screen.dart';
 import '../../features/local_game/presentation/local_game_screen.dart';
 import '../../features/mode/presentation/mode_screen.dart';
@@ -38,6 +39,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/rules',
         builder: (context, state) => const RulesScreen(),
+      ),
+      GoRoute(
+        path: '/terms',
+        builder: (context, state) => const TermsOfServiceScreen(),
+      ),
+      GoRoute(
+        path: '/privacy',
+        builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
+        path: '/legal',
+        builder: (context, state) => const LegalNoticeScreen(),
       ),
       GoRoute(
         path: '/lobby/:roomId',

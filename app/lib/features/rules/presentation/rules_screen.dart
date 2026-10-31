@@ -280,6 +280,20 @@ class RulesScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => context.push('/legal'),
+              icon: const Icon(Icons.gavel_rounded, size: 18),
+              label: const Text('Legal Notice & Licenses'),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: colors.line, width: 1.5),
+                foregroundColor: colors.mute,
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
