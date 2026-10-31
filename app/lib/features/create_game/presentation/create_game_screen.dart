@@ -27,6 +27,8 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
   // Online fields
   late TextEditingController _roomNameController;
   late TextEditingController _pinController;
+  late TextEditingController _customWordController;
+  late TextEditingController _customCategoryController;
   int _maxPlayers = 6;
   int _imposters = 1;
   int _rounds = 2;
@@ -42,6 +44,7 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
     'Famous people',
     'Animals',
     'Places',
+    'Custom',
   ];
 
   @override
@@ -51,6 +54,8 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
     _roomNameController = TextEditingController(text: '${profile.name}’s room');
     final initialPin = (1000 + math.Random().nextInt(9000)).toString();
     _pinController = TextEditingController(text: initialPin);
+    _customWordController = TextEditingController();
+    _customCategoryController = TextEditingController();
 
     _localNameControllers = profile.lastLocalNames
         .map((name) => TextEditingController(text: name))
@@ -67,6 +72,8 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
   void dispose() {
     _roomNameController.dispose();
     _pinController.dispose();
+    _customWordController.dispose();
+    _customCategoryController.dispose();
     for (final c in _localNameControllers) {
       c.dispose();
     }
@@ -90,6 +97,121 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
     });
   }
 
+  void _showCategoryPickerSheet() {
+    final colors = context.colors;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1D1D1D),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        String tempSelection = _category;
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Secret word category',
+                        style: SusTypography.title.copyWith(color: colors.bone),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        color: colors.mute,
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Pick a category or type your own custom secret word.',
+                    style: SusTypography.body.copyWith(color: colors.mute),
+                  ),
+                  const SizedBox(height: 16),
+                  ..._categories.map((c) {
+                    final isSelected = tempSelection == c;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: InkWell(
+                        onTap: () {
+                          setSheetState(() => tempSelection = c);
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? colors.crimson.withValues(alpha: 0.15)
+                                : colors.panel,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected ? colors.crimson : colors.line,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  c == 'Custom' ? 'Custom (type your own word)' : c,
+                                  style: SusTypography.body.copyWith(
+                                    color: isSelected ? Colors.white : colors.bone,
+                                    fontWeight:
+                                        isSelected ? FontWeight.w700 : FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: colors.crimsonBright,
+                                  size: 22,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 14),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() => _category = tempSelection);
+                      Navigator.of(sheetContext).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colors.crimson,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Text(
+                      'Done',
+                      style: SusTypography.body.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _handleCreateOnline() async {
     final name = _roomNameController.text.trim();
     final pin = _pinController.text.trim();
@@ -103,6 +225,11 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
       return;
     }
 
+    if (_category == 'Custom' && _customWordController.text.trim().isEmpty) {
+      AppToast.show(context, 'Please type your custom secret word');
+      return;
+    }
+
     final controller = ref.read(onlineGameControllerProvider.notifier);
     final res = await controller.createRoom(
       name: name,
@@ -113,6 +240,11 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
         'rounds': _rounds,
         'guessAttempts': _guessAttempts,
         'category': _category,
+        if (_category == 'Custom') 'customWord': _customWordController.text.trim(),
+        if (_category == 'Custom')
+          'customCategory': _customCategoryController.text.trim().isNotEmpty
+              ? _customCategoryController.text.trim()
+              : 'Custom',
       },
     );
 
@@ -139,6 +271,11 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
       return;
     }
 
+    if (_category == 'Custom' && _customWordController.text.trim().isEmpty) {
+      AppToast.show(context, 'Please type your custom secret word');
+      return;
+    }
+
     // Persist local names
     ref.read(userProfileProvider.notifier).updateLastLocalNames(names);
 
@@ -149,6 +286,10 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
       rounds: _rounds,
       guessAttempts: _guessAttempts,
       category: _category,
+      customWord: _category == 'Custom' ? _customWordController.text.trim() : null,
+      customCategory: _category == 'Custom' && _customCategoryController.text.trim().isNotEmpty
+          ? _customCategoryController.text.trim()
+          : null,
     );
 
     context.push('/local-game');
@@ -195,7 +336,10 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
               ),
               const SizedBox(height: 20),
 
-              if (_mode == 'Online') ..._buildOnlineFields(colors) else ..._buildLocalFields(colors),
+              if (_mode == 'Online')
+                ..._buildOnlineFields(colors)
+              else
+                ..._buildLocalFields(colors),
 
               const SizedBox(height: 20),
 
@@ -244,31 +388,65 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
                 style: SusTypography.caption.copyWith(color: colors.mute),
               ),
               const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: colors.panel,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: colors.line, width: 1.5),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _category,
-                    isExpanded: true,
-                    dropdownColor: colors.panel,
-                    style: SusTypography.body.copyWith(color: colors.bone),
-                    items: _categories.map((c) {
-                      return DropdownMenuItem<String>(
-                        value: c,
-                        child: Text(c),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _category = val);
-                    },
+              InkWell(
+                onTap: _showCategoryPickerSheet,
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: colors.panel,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: colors.line, width: 1.5),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _category == 'Custom' ? 'Custom (type your own word)' : _category,
+                        style: SusTypography.body.copyWith(
+                          color: colors.bone,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Icon(Icons.keyboard_arrow_down_rounded, color: colors.mute),
+                    ],
                   ),
                 ),
               ),
+
+              if (_category == 'Custom') ...[
+                const SizedBox(height: 14),
+                Text(
+                  'Custom secret word *',
+                  style: SusTypography.caption.copyWith(color: colors.crimsonBright),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _customWordController,
+                  maxLength: 30,
+                  style: SusTypography.body.copyWith(color: colors.bone),
+                  decoration: const InputDecoration(
+                    counterText: '',
+                    hintText: 'e.g. Mount Everest, Sushi, etc.',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Custom category name (optional)',
+                  style: SusTypography.caption.copyWith(color: colors.mute),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _customCategoryController,
+                  maxLength: 25,
+                  style: SusTypography.body.copyWith(color: colors.bone),
+                  decoration: const InputDecoration(
+                    counterText: '',
+                    hintText: 'e.g. Mountains, Food (defaults to Custom)',
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 28),
 
               // SwipeToConfirm
@@ -396,36 +574,26 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: () => _removeLocalPlayer(index),
-                  icon: Icon(Icons.close, color: colors.mute),
-                  style: IconButton.styleFrom(
-                    backgroundColor: colors.panel,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: BorderSide(color: colors.line, width: 1.5),
-                    ),
-                  ),
+                  icon: const Icon(Icons.close_rounded),
+                  color: colors.mute,
                 ),
               ],
             ],
           ),
         );
       }),
-      const SizedBox(height: 8),
-      OutlinedButton(
+      const SizedBox(height: 6),
+      OutlinedButton.icon(
         onPressed: _localNameControllers.length >= 12 ? null : _addLocalPlayer,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Add player'),
         style: OutlinedButton.styleFrom(
           minimumSize: const Size.fromHeight(48),
           side: BorderSide(color: colors.line, width: 1.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-        ),
-        child: Text(
-          'Add player',
-          style: SusTypography.body.copyWith(
-            color: colors.bone,
-            fontWeight: FontWeight.w700,
-          ),
+          textStyle: SusTypography.body.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
     ];
