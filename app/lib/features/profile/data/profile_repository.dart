@@ -8,7 +8,10 @@ class UserProfile {
     required this.color,
     this.resumeToken,
     this.lastLocalNames = const ['Player 1', 'Player 2', 'Player 3'],
-    this.serverUrl = const String.fromEnvironment('SERVER_URL', defaultValue: 'http://localhost:3000'),
+    this.serverUrl = const String.fromEnvironment(
+      'SERVER_URL',
+      defaultValue: 'https://sus-server-t5te.onrender.com',
+    ),
   });
 
   final String name;
@@ -42,6 +45,15 @@ class UserProfile {
       };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
+    final rawUrl = json['serverUrl'] as String?;
+    // Default to the live Render cloud server unless a custom non-localhost URL was saved
+    final serverUrl = (rawUrl != null && rawUrl.isNotEmpty && rawUrl != 'http://localhost:3000')
+        ? rawUrl
+        : const String.fromEnvironment(
+            'SERVER_URL',
+            defaultValue: 'https://sus-server-t5te.onrender.com',
+          );
+
     return UserProfile(
       name: (json['name'] as String?) ?? NameGenerator.generateRandomName(),
       color: (json['color'] as String?) ?? NameGenerator.getRandomColor(),
@@ -50,8 +62,7 @@ class UserProfile {
               ?.map((e) => e.toString())
               .toList() ??
           const ['Player 1', 'Player 2', 'Player 3'],
-      serverUrl: (json['serverUrl'] as String?) ??
-          const String.fromEnvironment('SERVER_URL', defaultValue: 'http://localhost:3000'),
+      serverUrl: serverUrl,
     );
   }
 }

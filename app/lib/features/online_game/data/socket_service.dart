@@ -37,12 +37,13 @@ class SocketService {
     _socket?.dispose();
     _connectedUrl = serverUrl;
 
-    final uri = '$serverUrl/game';
+    final cleanUrl = serverUrl.replaceAll(RegExp(r'/+$'), '');
+    final uri = '$cleanUrl/game';
 
     _socket = io.io(
       uri,
       io.OptionBuilder()
-          .setTransports(['websocket'])
+          .setTransports(['websocket', 'polling'])
           .setAuth({
             'protocolVersion': '1.0.0',
             if (resumeToken != null) 'resumeToken': resumeToken,
@@ -53,6 +54,10 @@ class SocketService {
           .setReconnectionDelayMax(5000)
           .build(),
     );
+
+    _socket!.onConnectError((err) {
+      debugPrint('[Socket] Connection error to $uri: $err');
+    });
 
     _socket!.onConnect((_) {
       debugPrint('[Socket] Connected to $uri');
