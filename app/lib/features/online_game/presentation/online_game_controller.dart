@@ -102,6 +102,9 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
       _socket.onConnectionChanged.listen((connected) {
         if (mounted) {
           state = state.copyWith(isConnected: connected);
+          if (connected && state.roomState != null && state.roomState!['id'] != null) {
+            syncRoom(state.roomState!['id'] as String);
+          }
         }
       }),
     );
@@ -279,6 +282,14 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
       latestAccusation: null,
       gameEndedData: null,
     );
+  }
+
+  Future<Map<String, dynamic>> syncRoom([String? roomId]) async {
+    final res = await _socket.syncRoom(roomId);
+    if (res['ok'] == true && res['data'] is Map) {
+      state = state.copyWith(roomState: Map<String, dynamic>.from(res['data'] as Map));
+    }
+    return res;
   }
 
   Future<Map<String, dynamic>> startGame() {

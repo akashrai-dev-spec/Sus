@@ -33,6 +33,11 @@ class _RoleCardState extends State<RoleCard> {
     }
   }
 
+  void _toggleReveal() {
+    PlatformFeedback.lightImpact();
+    setState(() => _isRevealed = !_isRevealed);
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -63,9 +68,29 @@ class _RoleCardState extends State<RoleCard> {
                 ]
               : null,
         ),
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          child: _isRevealed ? _buildRevealedContent(colors) : _buildHiddenContent(colors),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned(
+              top: 0,
+              right: 0,
+              child: GestureDetector(
+                onTap: _toggleReveal,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    _isRevealed ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                    size: 22,
+                    color: _isRevealed ? Colors.white70 : colors.mute,
+                  ),
+                ),
+              ),
+            ),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: _isRevealed ? _buildRevealedContent(colors) : _buildHiddenContent(colors),
+            ),
+          ],
         ),
       ),
     );

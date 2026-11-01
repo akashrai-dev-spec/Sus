@@ -66,6 +66,9 @@ export default function OnlineGameRoomPage() {
   // Dismissed accusation state
   const [dismissedAccusationKey, setDismissedAccusationKey] = useState<string | null>(null);
 
+  // Peek role modal
+  const [peekModalOpen, setPeekModalOpen] = useState(false);
+
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   // Automatic room state synchronization
@@ -91,7 +94,7 @@ export default function OnlineGameRoomPage() {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [roomState?.clues?.length]);
 
-  if (!isConnected || !roomState) {
+  if (!roomState) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
         {error ? (
@@ -260,6 +263,18 @@ export default function OnlineGameRoomPage() {
         </button>
 
         <div className="flex items-center gap-3">
+          {isPlaying && (
+            <button
+              onClick={() => {
+                sounds.playTick();
+                setPeekModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-crimson/15 border border-crimson/40 text-xs font-bold text-crimson-bright hover:bg-crimson/25 transition-colors"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>Peek Role</span>
+            </button>
+          )}
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-panel border border-line text-xs font-bold text-bone">
             <Lock className="w-3.5 h-3.5 text-amber-400" />
             <span>PIN: {roomState.pin || "••••"}</span>
@@ -275,6 +290,14 @@ export default function OnlineGameRoomPage() {
           </button>
         </div>
       </div>
+
+      {/* Reconnecting banner if temporarily disconnected */}
+      {!isConnected && (
+        <div className="mb-4 flex items-center justify-center gap-2 rounded-xl bg-amber-950/40 border border-amber-500/40 px-4 py-2 text-xs font-semibold text-amber-200 animate-pulse">
+          <div className="h-3 w-3 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+          <span>Reconnecting to game server...</span>
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 p-3.5 rounded-xl bg-crimson/20 border border-crimson text-xs font-bold text-crimson-bright flex items-center justify-between animate-in fade-in">
@@ -450,11 +473,15 @@ export default function OnlineGameRoomPage() {
                   Secret Role Assignment
                 </span>
                 <h2 className="text-3xl font-black text-white mt-1">Check Your Identity</h2>
-                <p className="text-xs text-mute mt-1">Press and hold the card to reveal.</p>
+                <p className="text-xs text-mute mt-1">Tap to toggle or press and hold to reveal.</p>
               </div>
 
-              {/* Hold to reveal card */}
+              {/* Hold or tap to reveal card */}
               <div
+                onClick={() => {
+                  sounds.playReveal();
+                  setIsRevealed((prev) => !prev);
+                }}
                 onMouseDown={() => {
                   sounds.playReveal();
                   setIsRevealed(true);
@@ -508,9 +535,9 @@ export default function OnlineGameRoomPage() {
                       <Eye className="w-6 h-6" />
                     </div>
                     <span className="text-lg font-bold text-bone">
-                      Press & Hold to Reveal Role
+                      Tap or Hold to Reveal Role
                     </span>
-                    <span className="text-xs text-mute">Release to hide immediately</span>
+                    <span className="text-xs text-mute">Tap again or release to hide</span>
                   </div>
                 )}
               </div>
@@ -941,6 +968,48 @@ export default function OnlineGameRoomPage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* PEEK ROLE MODAL (Accessible during discussion) */}
+      {peekModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="w-full max-w-sm rounded-3xl bg-panel border-2 border-line p-6 shadow-2xl text-center">
+            <span className="text-xs font-extrabold uppercase tracking-widest text-mute block mb-2">
+              Your Secret Identity
+            </span>
+            {privateRole?.role === "imposter" ? (
+              <div className="py-2">
+                <span className="inline-block px-3 py-1 rounded-full bg-crimson/20 border border-crimson text-crimson-bright text-xs font-black uppercase mb-3">
+                  Imposter
+                </span>
+                <h3 className="text-3xl font-black text-white mb-2">You are the Imposter</h3>
+                <p className="text-sm text-mute">
+                  Category: <b className="text-bone">{category}</b>
+                </p>
+                <p className="text-xs text-mute/80 mt-2">
+                  Bluff your clue and deduce the secret word to win.
+                </p>
+              </div>
+            ) : (
+              <div className="py-2">
+                <span className="inline-block px-3 py-1 rounded-full bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 text-xs font-black uppercase mb-3">
+                  Innocent Player
+                </span>
+                <span className="text-xs uppercase tracking-widest text-mute block">Secret Word</span>
+                <h3 className="text-3xl font-black text-white my-2">{secretWord}</h3>
+                <p className="text-sm text-mute">
+                  Category: <b className="text-bone">{category}</b>
+                </p>
+              </div>
+            )}
+            <button
+              onClick={() => setPeekModalOpen(false)}
+              className="mt-6 w-full py-3 rounded-xl bg-crimson hover:bg-crimson-bright text-white font-bold text-sm button-press"
+            >
+              Hide & Continue
+            </button>
+          </div>
         </div>
       )}
     </div>

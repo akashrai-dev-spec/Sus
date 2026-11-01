@@ -59,10 +59,32 @@ export class RoomManager {
 
     if (resumeToken && this.sessions.has(resumeToken)) {
       const existing = this.sessions.get(resumeToken)!;
+      if (existing.socketId && existing.socketId !== socketId) {
+        this.socketToToken.delete(existing.socketId);
+      }
       existing.socketId = socketId;
       existing.name = name || existing.name;
       existing.color = color || existing.color;
       this.socketToToken.set(socketId, resumeToken);
+
+      // Reconnect player in their room if they belong to one
+      if (existing.roomId) {
+        const room = this.rooms.get(existing.roomId);
+        if (room) {
+          this.reconnectPlayer(room, existing.playerId, socketId);
+        }
+      } else {
+        // Defensive scan: check if any room contains this player
+        for (const room of this.rooms.values()) {
+          const p = room.players.find((pl) => pl.id === existing.playerId);
+          if (p) {
+            existing.roomId = room.id;
+            this.reconnectPlayer(room, existing.playerId, socketId);
+            break;
+          }
+        }
+      }
+
       return existing;
     }
 
@@ -84,6 +106,37 @@ export class RoomManager {
     const token = this.socketToToken.get(socketId);
     if (!token) return undefined;
     return this.sessions.get(token);
+  }
+
+  getSessionByPlayerId(playerId: string): SessionInfo | undefined {
+    for (const session of this.sessions.values()) {
+      if (session.playerId === playerId) {
+        return session;
+      }
+    }
+    return undefined;
+  }
+
+  reconnectPlayer(room: Room, playerId: string, socketId: string): boolean {
+    const player = room.players.find((p) => p.id === playerId);
+    if (!player) return false;
+
+    player.socketId = socketId;
+    player.isConnected = true;
+
+    const timer = room.disconnectTimers.get(playerId);
+    if (timer) {
+      clearTimeout(timer);
+      room.disconnectTimers.delete(playerId);
+    }
+
+    if (room.gameState) {
+      const gp = room.gameState.players.find((p) => p.id === playerId);
+      if (gp) {
+        gp.isConnected = true;
+      }
+    }
+    return true;
   }
 
   updateProfile(socketId: string, name: string, color: string): SessionInfo | undefined {
@@ -253,6 +306,11 @@ export class RoomManager {
     }
 
     const leftPlayerId = session.playerId;
+    const timer = room.disconnectTimers.get(leftPlayerId);
+    if (timer) {
+      clearTimeout(timer);
+      room.disconnectTimers.delete(leftPlayerId);
+    }
     room.players = room.players.filter((p) => p.id !== leftPlayerId);
     session.roomId = undefined;
 
@@ -337,17 +395,45 @@ export class RoomManager {
     onGraceExpired: (room: Room, playerId: string) => void,
   ): { room?: Room; playerId?: string } {
     const session = this.getSessionBySocket(socketId);
-    if (!session || !session.roomId) return {};
+    if (!session || !session.roomId) {
+      this.socketToToken.delete(socketId);
+      return {};
+    }
+
+    // If the session has already moved to a new socket, this disconnect event is stale.
+    if (session.socketId !== socketId) {
+      this.socketToToken.delete(socketId);
+      return {};
+    }
 
     const room = this.rooms.get(session.roomId);
-    if (!room) return {};
+    if (!room) {
+      this.socketToToken.delete(socketId);
+      return {};
+    }
 
     const player = room.players.find((p) => p.id === session.playerId);
-    if (!player) return {};
+    if (!player) {
+      this.socketToToken.delete(socketId);
+      return {};
+    }
 
     player.isConnected = false;
+    if (room.gameState) {
+      const gp = room.gameState.players.find((p) => p.id === session.playerId);
+      if (gp) {
+        gp.isConnected = false;
+      }
+    }
 
-    // Start 60-second grace timer
+    // Clear any previous timer before starting a fresh one
+    const prevTimer = room.disconnectTimers.get(player.id);
+    if (prevTimer) {
+      clearTimeout(prevTimer);
+      room.disconnectTimers.delete(player.id);
+    }
+
+    // Start grace timer
     const timer = setTimeout(() => {
       onGraceExpired(room, player.id);
     }, config.disconnectGracePeriodMs);
