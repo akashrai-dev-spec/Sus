@@ -97,6 +97,17 @@ export default function OnlineGameRoomPage() {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [roomState?.clues?.length]);
 
+  // Cleanly notify server if navigating away or closing the page
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      leaveRoom();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [leaveRoom]);
+
   if (!roomState) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
@@ -254,9 +265,9 @@ export default function OnlineGameRoomPage() {
       {/* Top Header */}
       <div className="flex items-center justify-between mb-4">
         <button
-          onClick={() => {
+          onClick={async () => {
             sounds.playTick();
-            leaveRoom();
+            await leaveRoom();
             router.push("/play/rooms");
           }}
           className="inline-flex items-center gap-2 text-sm font-semibold text-mute hover:text-bone"
@@ -381,86 +392,104 @@ export default function OnlineGameRoomPage() {
             </div>
 
             {/* Players in Lobby */}
-            <div className="space-y-2 mb-8 max-w-lg mx-auto">
-              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-mute px-1">
-                <span>
-                  Connected Players ({roomState.players?.length || 0} /{" "}
-                  {roomState.settings?.maxPlayers || 6})
-                </span>
-                <span>{roomState.players?.length < 3 ? "Need 3 to start" : "Ready"}</span>
-              </div>
-              {roomState.players?.map((p: any) => {
-                const isUserHost = p.id === roomState.hostId;
-                const isMe = p.id === (myPlayerId || profile?.id);
-                return (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between p-3.5 rounded-xl bg-panel border border-line"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="h-8 w-8 rounded-full flex items-center justify-center font-extrabold text-white text-xs"
-                        style={{ backgroundColor: p.color || "#9a0f28" }}
-                      >
-                        {p.name[0]}
-                      </div>
-                      <span className="font-bold text-sm text-bone">
-                        {p.name} {isMe ? "(You)" : ""}
+            {(() => {
+              const connectedPlayers = roomState.players?.filter((p: any) => p.isConnected !== false) || [];
+              const connectedCount = connectedPlayers.length;
+              return (
+                <>
+                  <div className="space-y-2 mb-8 max-w-lg mx-auto">
+                    <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-mute px-1">
+                      <span>
+                        Connected Players ({connectedCount} /{" "}
+                        {roomState.settings?.maxPlayers || 6})
                       </span>
+                      <span>{connectedCount < 3 ? "Need 3 to start" : "Ready"}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {isUserHost && (
-                        <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-crimson/30 border border-crimson text-crimson-bright font-extrabold">
-                          Host
-                        </span>
-                      )}
-                      {isHost && !isMe && (
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleKick(p.id, p.name)}
-                            title="Kick player from room"
-                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-white/5 hover:bg-crimson/20 border border-line hover:border-crimson text-mute hover:text-crimson-bright transition-all"
-                          >
-                            Kick
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleBan(p.id, p.name)}
-                            title="Ban player from re-entering room"
-                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-crimson/20 hover:bg-crimson border border-crimson text-crimson-bright hover:text-white transition-all"
-                          >
-                            Ban
-                          </button>
+                    {roomState.players?.map((p: any) => {
+                      const isUserHost = p.id === roomState.hostId;
+                      const isMe = p.id === (myPlayerId || profile?.id);
+                      const isOffline = p.isConnected === false;
+                      return (
+                        <div
+                          key={p.id}
+                          className={`flex items-center justify-between p-3.5 rounded-xl bg-panel border ${
+                            isOffline ? "border-line/40 opacity-60" : "border-line"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="h-8 w-8 rounded-full flex items-center justify-center font-extrabold text-white text-xs"
+                              style={{ backgroundColor: p.color || "#9a0f28" }}
+                            >
+                              {p.name[0]}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-bone">
+                                {p.name} {isMe ? "(You)" : ""}
+                              </span>
+                              {isOffline && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-line text-mute font-bold">
+                                  Offline
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isUserHost && (
+                              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-crimson/30 border border-crimson text-crimson-bright font-extrabold">
+                                Host
+                              </span>
+                            )}
+                            {isHost && !isMe && (
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleKick(p.id, p.name)}
+                                  title="Kick player from room"
+                                  className="px-2.5 py-1 text-xs font-bold rounded-lg bg-white/5 hover:bg-crimson/20 border border-line hover:border-crimson text-mute hover:text-crimson-bright transition-all"
+                                >
+                                  Kick
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleBan(p.id, p.name)}
+                                  title="Ban player from re-entering room"
+                                  className="px-2.5 py-1 text-xs font-bold rounded-lg bg-crimson/20 hover:bg-crimson border border-crimson text-crimson-bright hover:text-white transition-all"
+                                >
+                                  Ban
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          </div>
 
-          <div className="pt-4 max-w-lg mx-auto w-full">
-            {isHost ? (
-              <button
-                disabled={roomState.players?.length < 3}
-                onClick={handleStartGame}
-                className="w-full py-4 rounded-2xl bg-crimson hover:bg-crimson-bright text-white font-extrabold text-lg shadow-xl shadow-crimson/30 transition-all button-press disabled:opacity-40"
-              >
-                {roomState.players?.length < 3
-                  ? `Need ${3 - roomState.players.length} More Player${
-                      3 - roomState.players.length > 1 ? "s" : ""
-                    } to Start`
-                  : "Start Match ›››"}
-              </button>
-            ) : (
-              <div className="rounded-xl bg-panel p-4 text-center border border-line text-sm text-mute">
-                Waiting for the host (<b className="text-bone">
-                  {roomState.players?.find((p: any) => p.id === roomState.hostId)?.name}
-                </b>) to start the match...
-              </div>
-            )}
+                  <div className="pt-4 max-w-lg mx-auto w-full">
+                    {isHost ? (
+                      <button
+                        disabled={connectedCount < 3}
+                        onClick={handleStartGame}
+                        className="w-full py-4 rounded-2xl bg-crimson hover:bg-crimson-bright text-white font-extrabold text-lg shadow-xl shadow-crimson/30 transition-all button-press disabled:opacity-40"
+                      >
+                        {connectedCount < 3
+                          ? `Need ${3 - connectedCount} More Player${
+                              3 - connectedCount > 1 ? "s" : ""
+                            } to Start`
+                          : "Start Match ›››"}
+                      </button>
+                    ) : (
+                      <div className="rounded-xl bg-panel p-4 text-center border border-line text-sm text-mute">
+                        Waiting for the host (<b className="text-bone">
+                          {roomState.players?.find((p: any) => p.id === roomState.hostId)?.name}
+                        </b>) to start the match...
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

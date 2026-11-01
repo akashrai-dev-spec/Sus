@@ -58,6 +58,74 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
     });
   }
 
+  Future<void> _confirmLeaveGame() async {
+    final leave = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: const Color(0xFF1D1D1D),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final colors = ctx.colors;
+        return Padding(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Leave match?',
+                style: SusTypography.title.copyWith(color: colors.bone),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'You will exit this game and return to the home screen.',
+                style: SusTypography.body.copyWith(color: colors.mute),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: BorderSide(color: colors.line, width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text('Stay', style: SusTypography.body.copyWith(color: colors.bone)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colors.crimson,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text('Leave', style: SusTypography.body.copyWith(color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if ((leave ?? false) && mounted) {
+      await ref.read(onlineGameControllerProvider.notifier).leaveRoom();
+      if (mounted) context.go('/');
+    }
+  }
+
   void _showAccusationOutcomeDialog(
     SusColors colors,
     Map<String, dynamic> res,
@@ -570,12 +638,20 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
           }
         });
       }
-      return Scaffold(
-        appBar: AppHeader(
-          playerName: profile.name,
-          playerColorHex: profile.color,
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          _confirmLeaveGame();
+        },
+        child: Scaffold(
+          appBar: AppHeader(
+            playerName: profile.name,
+            playerColorHex: profile.color,
+            onBack: _confirmLeaveGame,
+          ),
+          body: Center(child: CircularProgressIndicator(color: colors.crimson)),
         ),
-        body: Center(child: CircularProgressIndicator(color: colors.crimson)),
       );
     }
 
@@ -650,12 +726,19 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
       final readyPlayers = players.where((p) => p['isReady'] == true).toList();
       final waitingPlayers = players.where((p) => p['isReady'] != true).toList();
 
-      return Scaffold(
-        appBar: AppHeader(
-          playerName: profile.name,
-          playerColorHex: profile.color,
-        ),
-        body: ContentColumn(
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          _confirmLeaveGame();
+        },
+        child: Scaffold(
+          appBar: AppHeader(
+            playerName: profile.name,
+            playerColorHex: profile.color,
+            onBack: _confirmLeaveGame,
+          ),
+          body: ContentColumn(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -795,8 +878,9 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
             ],
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
 
     // Active discussion / accusation view
     final currentTurn = room['currentTurn'] as Map<String, dynamic>?;
@@ -822,12 +906,19 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
         .where((p) => p['id'] != (myPlayerId ?? myPlayer['id']) && p['isAlive'] == true)
         .toList();
 
-    return Scaffold(
-      appBar: AppHeader(
-        playerName: profile.name,
-        playerColorHex: profile.color,
-      ),
-      body: ContentColumn(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _confirmLeaveGame();
+      },
+      child: Scaffold(
+        appBar: AppHeader(
+          playerName: profile.name,
+          playerColorHex: profile.color,
+          onBack: _confirmLeaveGame,
+        ),
+        body: ContentColumn(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1081,6 +1172,7 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

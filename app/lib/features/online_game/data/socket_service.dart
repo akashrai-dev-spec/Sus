@@ -216,8 +216,10 @@ class SocketService {
     });
   }
 
-  Future<Map<String, dynamic>> leaveRoom() {
-    return emitWithAck('rooms:leave', {});
+  Future<Map<String, dynamic>> leaveRoom([String? roomId]) {
+    return emitWithAck('rooms:leave', {
+      if (roomId != null) 'roomId': roomId,
+    });
   }
 
   Future<Map<String, dynamic>> syncRoom([String? roomId]) {
