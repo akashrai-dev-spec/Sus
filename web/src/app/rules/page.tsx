@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, BookOpen, Eye, Shield, Users, HelpCircle, CheckCircle, Flame } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle, Flame, RefreshCw, ShieldAlert, Users } from "lucide-react";
 
 export default function RulesPage() {
   return (
@@ -15,13 +15,13 @@ export default function RulesPage() {
       <div className="mb-12 text-center max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-crimson/15 border border-crimson/30 text-xs font-bold text-crimson-bright uppercase mb-3">
           <BookOpen className="w-3.5 h-3.5" />
-          <span>Game Guide & Strategy</span>
+          <span>Game Guide</span>
         </div>
         <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight mb-3">
           How to Play Sus
         </h1>
         <p className="text-mute text-base sm:text-lg">
-          Master the art of subtle clue giving, imposter bluffing, and decisive accusations.
+          Give clues, spot fakes, and catch the imposter before they guess the word.
         </p>
       </div>
 
@@ -36,19 +36,18 @@ export default function RulesPage() {
                 <span>Normal Players</span>
               </div>
               <p className="text-sm text-mute leading-relaxed">
-                You know the secret word. Cooperate by giving clues that hint at the word without
-                revealing it to the imposter. Unmask and eliminate every imposter to win!
+                You get the secret word and its category. Give clues that prove to other players
+                you know the word, without giving it away to the imposter. Unmask the imposter to win.
               </p>
             </div>
             <div className="rounded-2xl bg-ink-deep p-6 border border-crimson/40">
               <div className="flex items-center gap-2 text-crimson-bright font-bold text-base mb-2">
                 <Flame className="w-5 h-5" />
-                <span>The Imposters</span>
+                <span>The Imposter</span>
               </div>
               <p className="text-sm text-mute leading-relaxed">
-                You only see the category. Listen to other players&apos; clues, bluff your turn to blend in,
-                and try to deduce the secret word. Guessing the word correctly wins you the game
-                immediately!
+                You only see the category, not the secret word. Listen to everyone&apos;s clues, bluff
+                when it is your turn, and try to guess the secret word. Guessing the word wins immediately.
               </p>
             </div>
           </div>
@@ -56,33 +55,33 @@ export default function RulesPage() {
 
         {/* 5 Stages */}
         <section>
-          <h2 className="text-2xl font-black text-white mb-6">Match Progression</h2>
+          <h2 className="text-2xl font-black text-white mb-6">Round Progression</h2>
           <div className="space-y-4">
             {[
               {
-                step: "Phase 1",
+                step: "Step 1",
                 title: "Secret Role Assignment",
-                desc: "Every player secretly views their role card. Imposters are given only the category (e.g. 'Animals'), while normal players receive the exact secret word (e.g. 'Lion').",
+                desc: "Each player views their private role card. Normal players receive the exact secret word and category. The imposter sees only the category.",
               },
               {
-                step: "Phase 2",
-                title: "Round-Robin Discussion",
-                desc: "Players take turns in a fixed random speaking order giving exactly one clue. You may never say the secret word or any direct variant. Normal players should be clever; imposters must bluff.",
+                step: "Step 2",
+                title: "Turn-by-Turn Clues",
+                desc: "Players speak in order, giving one short clue each round. You cannot say the secret word or any direct form of it. Normal players stay subtle, while the imposter bluffs.",
               },
               {
-                step: "Phase 3",
-                title: "Instant Accusation",
-                desc: "At any moment during discussion, any player can press Accuse. The accused player's true role is immediately revealed! If they are an imposter, they are eliminated. If they are innocent, the accuser loses their accusation privilege.",
+                step: "Step 3",
+                title: "Accusations",
+                desc: "During discussion, any player can tap Accuse. The game reveals whether the accused player is innocent or the imposter. Catch the imposter and normal players win. Accuse an innocent player and you lose your accusation.",
               },
               {
-                step: "Phase 4",
+                step: "Step 4",
                 title: "Imposter Guess",
-                desc: "At any time, an imposter can spend one of their guess attempts to guess the secret word. If correct, the imposters achieve an instant victory!",
+                desc: "The imposter can guess the secret word at any point during discussion. Guesses are flexible: capitalization, extra spaces, punctuation, and words like 'a', 'an', or 'the' do not matter. Guessing right wins on the spot.",
               },
               {
-                step: "Phase 5",
-                title: "The Final Vote",
-                desc: "If all discussion rounds finish without catching all imposters, the survivors vote together on one final accusation. Guessing wrong grants the imposters an immediate win.",
+                step: "Step 5",
+                title: "Final Vote",
+                desc: "If all discussion rounds end and the imposter is still in the game, everyone votes on a final suspect. A wrong vote hands victory to the imposter.",
               },
             ].map((s, idx) => (
               <div
@@ -98,6 +97,37 @@ export default function RulesPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* Special Rules */}
+        <section className="space-y-6">
+          <h2 className="text-2xl font-black text-white mb-4">Special Rules & Controls</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="rounded-2xl bg-panel p-6 border border-line">
+              <div className="flex items-center gap-2 text-bone font-bold text-base mb-2">
+                <RefreshCw className="w-5 h-5 text-crimson-bright" />
+                <span>3-Player Role Reversal</span>
+              </div>
+              <p className="text-sm text-mute leading-relaxed">
+                In 3-player games, if an innocent player is wrongly accused, they are not eliminated.
+                Instead, roles reverse: the game chooses a new imposter and a new secret word.
+                Every player gets a pop-up showing their new role, and discussion restarts from the player
+                who made the accusation.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-panel p-6 border border-line">
+              <div className="flex items-center gap-2 text-bone font-bold text-base mb-2">
+                <Users className="w-5 h-5 text-emerald-400" />
+                <span>Minimum Players & Fair Play</span>
+              </div>
+              <p className="text-sm text-mute leading-relaxed">
+                A match requires at least 3 players. If someone disconnects or leaves mid-game and the group
+                drops below 3, the match pauses and returns everyone to the lobby so another player can join.
+                Room hosts also have buttons to kick or ban unwanted players from the lobby.
+              </p>
+            </div>
           </div>
         </section>
       </div>

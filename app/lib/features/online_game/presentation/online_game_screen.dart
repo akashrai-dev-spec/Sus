@@ -174,6 +174,9 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
                   onPressed: () {
                     Navigator.of(ctx).pop();
                     ref.read(onlineGameControllerProvider.notifier).clearAccusation();
+                    if (roleReverse) {
+                      _showRoleReversedDialog(colors);
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colors.crimson,
@@ -184,6 +187,159 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
                   ),
                   child: Text(
                     'Continue',
+                    style: SusTypography.body.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showRoleReversedDialog(SusColors colors) {
+    final online = ref.read(onlineGameControllerProvider);
+    final isImposter = online.isImposter;
+    final secretWord = online.mySecretWord ?? 'Secret';
+    final category = online.myCategory ?? 'General';
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: const Color(0xFF1D1D1D),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(color: colors.crimson, width: 2),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: colors.crimson.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(color: colors.crimson),
+                  ),
+                  child: Text(
+                    'ROLE REVERSAL APPLIED',
+                    style: SusTypography.caption.copyWith(
+                      color: colors.crimsonBright,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Your New Role',
+                  style: SusTypography.caption.copyWith(
+                    color: colors.mute,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  isImposter ? 'You are now the IMPOSTER' : 'Innocent Player',
+                  style: SusTypography.title.copyWith(
+                    color: colors.bone,
+                    fontSize: 22,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isImposter
+                        ? colors.crimson.withValues(alpha: 0.15)
+                        : const Color(0xFF10B981).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isImposter ? colors.crimson : const Color(0xFF10B981),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      if (isImposter) ...[
+                        Text(
+                          'Category: $category',
+                          style: SusTypography.title.copyWith(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'You do not know the secret word. Blend in with believable clues and guess the secret word to win!',
+                          style: SusTypography.caption.copyWith(
+                            color: colors.mute,
+                            fontSize: 12,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ] else ...[
+                        Text(
+                          'Secret Word',
+                          style: SusTypography.caption.copyWith(
+                            color: colors.mute,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          secretWord,
+                          style: SusTypography.display.copyWith(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Category: $category',
+                          style: SusTypography.body.copyWith(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Give subtle clues without saying the word!',
+                          style: SusTypography.caption.copyWith(
+                            color: colors.mute,
+                            fontSize: 12,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.crimson,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Enter Discussion Box',
                     style: SusTypography.body.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -716,6 +872,7 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
                   final p = players[i];
                   final isPAlive = p['isAlive'] as bool? ?? true;
                   final isSpeaking = p['id'] == speakerId;
+                  final hasGivenClue = online.liveClues.any((c) => c['playerId'] == p['id']);
 
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -727,20 +884,77 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
                           : Border.all(color: colors.line, width: 1),
                     ),
                     child: Center(
-                      child: Text(
-                        p['name'].toString().split(' ')[0],
-                        style: SusTypography.caption.copyWith(
-                          color: isPAlive ? colors.bone : colors.mute,
-                          fontWeight: isSpeaking ? FontWeight.w700 : FontWeight.w500,
-                          decoration: isPAlive ? null : TextDecoration.lineThrough,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            p['name'].toString().split(' ')[0],
+                            style: SusTypography.caption.copyWith(
+                              color: isPAlive ? colors.bone : colors.mute,
+                              fontWeight: isSpeaking ? FontWeight.w700 : FontWeight.w500,
+                              decoration: isPAlive ? null : TextDecoration.lineThrough,
+                            ),
+                          ),
+                          if (isSpeaking) ...[
+                            const SizedBox(width: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: colors.crimson,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'Speaking',
+                                style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                          ] else if (hasGivenClue) ...[
+                            const SizedBox(width: 3),
+                            const Icon(Icons.check, size: 12, color: Color(0xFF10B981)),
+                          ],
+                        ],
                       ),
                     ),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+
+            // Imposter guessing status banner
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: colors.panel.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: colors.line),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFFF59E0B),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      online.isImposter
+                          ? 'You are the Imposter: You can guess the secret word anytime below to win immediately.'
+                          : 'Imposter Guessing: The imposter can submit a word guess at any time to win.',
+                      style: SusTypography.caption.copyWith(
+                        color: colors.mute,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
             // Live Clue Log
             Expanded(
