@@ -179,6 +179,27 @@ function initGlobalSocketListeners(s: Socket) {
     notifyStateChange();
   });
 
+  s.on("game:aborted", (data: any) => {
+    sharedError = data?.reason || "Game returned to lobby due to lack of players.";
+    notifyStateChange();
+  });
+
+  s.on("room:kicked", (data: any) => {
+    sharedRoomState = null;
+    sharedPrivateRole = null;
+    sharedAccusationResult = null;
+    sharedError = data?.message || "You were kicked from the room by the host.";
+    notifyStateChange();
+  });
+
+  s.on("room:banned", (data: any) => {
+    sharedRoomState = null;
+    sharedPrivateRole = null;
+    sharedAccusationResult = null;
+    sharedError = data?.message || "You were banned from this room by the host.";
+    notifyStateChange();
+  });
+
   if (s.connected) {
     sharedIsConnected = true;
     doHello();
@@ -348,6 +369,26 @@ export function useGameSocket() {
     });
   }, []);
 
+  const kickPlayer = useCallback(async (targetId: string) => {
+    const s = socketRef.current || getGameSocket();
+    return new Promise<void>((resolve, reject) => {
+      s.emit("room:kickPlayer", { targetId }, (res: any) => {
+        if (res?.ok) resolve();
+        else reject(new Error(res?.message || "Failed to kick player"));
+      });
+    });
+  }, []);
+
+  const banPlayer = useCallback(async (targetId: string) => {
+    const s = socketRef.current || getGameSocket();
+    return new Promise<void>((resolve, reject) => {
+      s.emit("room:banPlayer", { targetId }, (res: any) => {
+        if (res?.ok) resolve();
+        else reject(new Error(res?.message || "Failed to ban player"));
+      });
+    });
+  }, []);
+
   return {
     socket: socketRef.current,
     isConnected: sharedIsConnected,
@@ -382,5 +423,7 @@ export function useGameSocket() {
     startAccusation,
     resolveAccusation,
     submitImposterGuess,
+    kickPlayer,
+    banPlayer,
   };
 }

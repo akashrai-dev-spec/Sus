@@ -400,8 +400,18 @@ export class WebGameEngine {
       return state;
     }
 
-    const cleanGuess = WordFilter.normalize(params.word);
-    const cleanSecret = WordFilter.normalize(state.secretWord);
+    const normalizeWord = (w: string) =>
+      w
+        .trim()
+        .toLowerCase()
+        .replace(/[^\w\s]/g, "")
+        .trim()
+        .replace(/^(a|an|the)\s+/i, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const cleanGuess = normalizeWord(params.word);
+    const cleanSecret = normalizeWord(state.secretWord);
 
     if (player.role === "imposter" && cleanGuess === cleanSecret) {
       return {

@@ -274,6 +274,70 @@ describe("GameEngine Core Rules", () => {
     const p1 = state.players.find((p) => p.id === "p1")!;
     expect(p1.usedAccusation).toBe(false);
   });
+
+  it("accepts imposter guesses with lowercase, uppercase, punctuation, and leading articles", () => {
+    const players: GamePlayer[] = [
+      {
+        id: "p1",
+        name: "P1",
+        color: "#9A0F28",
+        role: "normal",
+        isAlive: true,
+        isHost: true,
+        usedAccusation: false,
+        remainingGuesses: 1,
+        isReady: true,
+      },
+      {
+        id: "p2",
+        name: "P2",
+        color: "#9A0F28",
+        role: "imposter",
+        isAlive: true,
+        isHost: false,
+        usedAccusation: false,
+        remainingGuesses: 2,
+        isReady: true,
+      },
+      {
+        id: "p3",
+        name: "P3",
+        color: "#9A0F28",
+        role: "normal",
+        isAlive: true,
+        isHost: false,
+        usedAccusation: false,
+        remainingGuesses: 1,
+        isReady: true,
+      },
+    ];
+
+    let state = GameEngine.startGame({
+      players,
+      settings: {
+        maxPlayers: 3,
+        imposters: 1,
+        rounds: 2,
+        guessAttempts: 2,
+        category: "Food",
+      },
+      secretWord: "Apple",
+      category: "Food",
+      customOrder: ["p1", "p2", "p3"],
+      customImposterIds: ["p2"],
+    });
+
+    for (const p of players) {
+      state = GameEngine.markPlayerReady(state, p.id);
+    }
+
+    // Test lowercase guess with article and punctuation: "an apple!"
+    const guessResult = GameEngine.imposterGuess(state, { playerId: "p2", word: "  an apple! " });
+    expect(guessResult.currentPhase.name).toBe("ended");
+    if (guessResult.currentPhase.name === "ended") {
+      expect(guessResult.currentPhase.winner).toBe("imposter");
+    }
+  });
 });
 
 describe("Shared Fixture Replays", () => {

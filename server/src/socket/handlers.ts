@@ -9,6 +9,8 @@ import {
   gameSettingsSchema,
   imposterGuessSchema,
   profileUpdateSchema,
+  roomBanPlayerSchema,
+  roomKickPlayerSchema,
   roomsCreateSchema,
   roomsJoinSchema,
   sessionHelloSchema,
@@ -182,6 +184,12 @@ export function registerSocketHandlers(io: Namespace, roomManager: RoomManager):
           sendPrivateRole(socket, room, session.playerId);
         }
       } catch (err: any) {
+        if (err.message === "PLAYER_BANNED") {
+          return safeAck(ack, false, { code: "BANNED", message: "You are banned from this room." });
+        }
+        if (err.message === "GAME_ALREADY_IN_PROGRESS") {
+          return safeAck(ack, false, { code: "GAME_IN_PROGRESS", message: "Game already in progress." });
+        }
         safeAck(ack, false, { code: err.message || "JOIN_FAILED", message: err.message });
       }
     });
@@ -225,9 +233,111 @@ export function registerSocketHandlers(io: Namespace, roomManager: RoomManager):
 
       if (room && leftPlayerId) {
         io.to(room.id).emit("room:playerLeft", { playerId: leftPlayerId });
+        const aborted = roomManager.checkAndAbortGameIfUnderflow(room);
+        if (aborted) {
+          io.to(room.id).emit("game:aborted", {
+            reason: "Player count fell below 3. Returned to lobby so more players can join.",
+          });
+        }
         io.to(room.id).emit("room:state", roomManager.getPublicRoomState(room));
       }
       safeAck(ack, true);
+    });
+
+    // 5b. room:kickPlayer (host kicks a player)
+    socket.on("room:kickPlayer", (rawPayload, ack: AckCallback) => {
+      const session = roomManager.getSessionBySocket(socket.id);
+      if (!session?.roomId) {
+        return safeAck(ack, false, { code: "NOT_IN_ROOM", message: "Not in a room." });
+      }
+
+      const room = roomManager.getRoom(session.roomId);
+      if (!room || room.hostId !== session.playerId) {
+        return safeAck(ack, false, { code: "HOST_ONLY", message: "Only the host can kick players." });
+      }
+
+      const parsed = roomKickPlayerSchema.safeParse(rawPayload);
+      if (!parsed.success) {
+        return safeAck(ack, false, { code: "VALIDATION_FAILED", message: "Invalid target player." });
+      }
+
+      if (parsed.data.targetId === session.playerId) {
+        return safeAck(ack, false, { code: "CANNOT_KICK_SELF", message: "You cannot kick yourself." });
+      }
+
+      const res = roomManager.kickPlayer(room, parsed.data.targetId);
+      if (!res) {
+        return safeAck(ack, false, { code: "PLAYER_NOT_FOUND", message: "Player not found in room." });
+      }
+
+      if (res.targetSocketId) {
+        const targetSocket = io.sockets.get(res.targetSocketId);
+        if (targetSocket) {
+          targetSocket.leave(room.id);
+          targetSocket.emit("room:kicked", { message: "You were kicked by the host." });
+        }
+      }
+
+      io.to(room.id).emit("room:playerLeft", { playerId: res.leftPlayerId });
+
+      const aborted = roomManager.checkAndAbortGameIfUnderflow(room);
+      if (aborted) {
+        io.to(room.id).emit("game:aborted", {
+          reason: "Player count fell below 3. Returned to lobby so more players can join.",
+        });
+      }
+
+      const state = roomManager.getPublicRoomState(room);
+      safeAck(ack, true, state);
+      io.to(room.id).emit("room:state", state);
+    });
+
+    // 5c. room:banPlayer (host bans a player from re-entering)
+    socket.on("room:banPlayer", (rawPayload, ack: AckCallback) => {
+      const session = roomManager.getSessionBySocket(socket.id);
+      if (!session?.roomId) {
+        return safeAck(ack, false, { code: "NOT_IN_ROOM", message: "Not in a room." });
+      }
+
+      const room = roomManager.getRoom(session.roomId);
+      if (!room || room.hostId !== session.playerId) {
+        return safeAck(ack, false, { code: "HOST_ONLY", message: "Only the host can ban players." });
+      }
+
+      const parsed = roomBanPlayerSchema.safeParse(rawPayload);
+      if (!parsed.success) {
+        return safeAck(ack, false, { code: "VALIDATION_FAILED", message: "Invalid target player." });
+      }
+
+      if (parsed.data.targetId === session.playerId) {
+        return safeAck(ack, false, { code: "CANNOT_BAN_SELF", message: "You cannot ban yourself." });
+      }
+
+      const res = roomManager.banPlayer(room, parsed.data.targetId);
+      if (!res) {
+        return safeAck(ack, false, { code: "PLAYER_NOT_FOUND", message: "Player not found in room." });
+      }
+
+      if (res.targetSocketId) {
+        const targetSocket = io.sockets.get(res.targetSocketId);
+        if (targetSocket) {
+          targetSocket.leave(room.id);
+          targetSocket.emit("room:banned", { message: "You have been banned from this room by the host." });
+        }
+      }
+
+      io.to(room.id).emit("room:playerLeft", { playerId: res.leftPlayerId });
+
+      const aborted = roomManager.checkAndAbortGameIfUnderflow(room);
+      if (aborted) {
+        io.to(room.id).emit("game:aborted", {
+          reason: "Player count fell below 3. Returned to lobby so more players can join.",
+        });
+      }
+
+      const state = roomManager.getPublicRoomState(room);
+      safeAck(ack, true, state);
+      io.to(room.id).emit("room:state", state);
     });
 
     // 6. room:updateSettings
@@ -498,7 +608,14 @@ export function registerSocketHandlers(io: Namespace, roomManager: RoomManager):
     socket.on("disconnect", () => {
       const { room, playerId } = roomManager.handleDisconnect(socket.id, (expiredRoom, pId) => {
         logger.info({ roomId: expiredRoom.id, playerId: pId }, "Disconnect grace expired");
+        expiredRoom.players = expiredRoom.players.filter((p) => p.id !== pId);
         io.to(expiredRoom.id).emit("room:playerLeft", { playerId: pId });
+        const aborted = roomManager.checkAndAbortGameIfUnderflow(expiredRoom);
+        if (aborted) {
+          io.to(expiredRoom.id).emit("game:aborted", {
+            reason: "Player count fell below 3. Returned to lobby so more players can join.",
+          });
+        }
         io.to(expiredRoom.id).emit("room:state", roomManager.getPublicRoomState(expiredRoom));
       });
 

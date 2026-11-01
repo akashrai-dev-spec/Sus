@@ -146,6 +146,28 @@ void main() {
       expect(state.clues, isEmpty);
       expect(state.getPlayer('p1')?.usedAccusation, isFalse);
     });
+
+    test('accepts imposter guesses with lowercase, punctuation, and articles', () {
+      final players = [
+        const GamePlayer(id: 'p1', name: 'P1', role: PlayerRole.normal),
+        const GamePlayer(id: 'p2', name: 'P2', role: PlayerRole.imposter),
+        const GamePlayer(id: 'p3', name: 'P3', role: PlayerRole.normal),
+      ];
+      var state = GameEngine.startGame(
+        players: players,
+        settings: const GameSettings(),
+        secretWord: 'Apple',
+        category: 'Food',
+        customOrder: ['p1', 'p2', 'p3'],
+        customImposterIds: ['p2'],
+      );
+      state = GameEngine.startDiscussion(state);
+
+      state = GameEngine.imposterGuess(state, playerId: 'p2', word: '   an apple!  ');
+      expect(state.currentPhase, isA<EndedPhase>());
+      final ended = state.currentPhase as EndedPhase;
+      expect(ended.winner, 'imposter');
+    });
   });
 
   group('Shared Fixture Replays', () {

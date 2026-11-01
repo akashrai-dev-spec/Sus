@@ -394,6 +394,16 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
 
     final room = online.roomState;
     if (room == null) {
+      if (online.notificationMessage != null) {
+        final msg = online.notificationMessage!;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            AppToast.show(context, msg);
+            ref.read(onlineGameControllerProvider.notifier).clearNotification();
+            context.go('/rooms');
+          }
+        });
+      }
       return Scaffold(
         appBar: AppHeader(
           playerName: profile.name,
@@ -403,7 +413,30 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
       );
     }
 
+    if (online.notificationMessage != null) {
+      final msg = online.notificationMessage!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          AppToast.show(context, msg);
+          ref.read(onlineGameControllerProvider.notifier).clearNotification();
+        }
+      });
+    }
+
     final phase = room['phase'] as String? ?? 'roleReveal';
+
+    // Return to lobby if game was aborted due to lack of players
+    if (phase == 'lobby') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          AppToast.show(
+            context,
+            'Not enough players to continue. Returned to lobby.',
+          );
+          context.go('/lobby/${widget.roomId}');
+        }
+      });
+    }
 
     // End of game navigation
     if (phase == 'ended') {

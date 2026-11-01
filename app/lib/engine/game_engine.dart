@@ -427,8 +427,19 @@ class GameEngine {
     }).toList();
 
     // Check match
-    final cleanGuess = word.trim().toLowerCase();
-    final cleanSecret = state.secretWord.trim().toLowerCase();
+    String normalizeGuess(String w) {
+      return w
+          .trim()
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^\w\s]'), '')
+          .trim()
+          .replaceFirst(RegExp(r'^(a|an|the)\s+', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+    }
+
+    final cleanGuess = normalizeGuess(word);
+    final cleanSecret = normalizeGuess(state.secretWord);
 
     // Non-imposters always fail silently/neutrally to prevent leakage
     if (player.isImposter && cleanGuess == cleanSecret) {

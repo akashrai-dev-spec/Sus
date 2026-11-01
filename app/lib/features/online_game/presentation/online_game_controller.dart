@@ -21,6 +21,7 @@ class OnlineState {
     this.liveClues = const [],
     this.latestAccusation,
     this.gameEndedData,
+    this.notificationMessage,
   });
 
   final bool isConnected;
@@ -32,6 +33,7 @@ class OnlineState {
   final List<Map<String, dynamic>> liveClues;
   final Map<String, dynamic>? latestAccusation;
   final Map<String, dynamic>? gameEndedData;
+  final String? notificationMessage;
 
   bool get isHost {
     if (roomState == null || playerId == null) return false;
@@ -50,6 +52,7 @@ class OnlineState {
     List<Map<String, dynamic>>? liveClues,
     Map<String, dynamic>? latestAccusation,
     Map<String, dynamic>? gameEndedData,
+    String? notificationMessage,
   }) {
     return OnlineState(
       isConnected: isConnected ?? this.isConnected,
@@ -61,6 +64,7 @@ class OnlineState {
       liveClues: liveClues ?? this.liveClues,
       latestAccusation: latestAccusation ?? this.latestAccusation,
       gameEndedData: gameEndedData ?? this.gameEndedData,
+      notificationMessage: notificationMessage,
     );
   }
 }
@@ -172,6 +176,44 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
         state = state.copyWith(gameEndedData: ended);
       }),
     );
+
+    _subscriptions.add(
+      _socket.onKicked.listen((data) {
+        if (!mounted) return;
+        state = state.copyWith(
+          roomState: null,
+          myRole: null,
+          mySecretWord: null,
+          liveClues: [],
+          notificationMessage: data['message'] as String? ?? 'You were kicked from the room by the host.',
+        );
+      }),
+    );
+
+    _subscriptions.add(
+      _socket.onBanned.listen((data) {
+        if (!mounted) return;
+        state = state.copyWith(
+          roomState: null,
+          myRole: null,
+          mySecretWord: null,
+          liveClues: [],
+          notificationMessage: data['message'] as String? ?? 'You were banned from this room by the host.',
+        );
+      }),
+    );
+
+    _subscriptions.add(
+      _socket.onAborted.listen((data) {
+        if (!mounted) return;
+        state = state.copyWith(
+          myRole: null,
+          mySecretWord: null,
+          liveClues: [],
+          notificationMessage: data['reason'] as String? ?? 'Game returned to lobby due to lack of players.',
+        );
+      }),
+    );
   }
 
   @override
@@ -257,6 +299,18 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
 
   Future<Map<String, dynamic>> guessWord(String word) {
     return _socket.guessWord(word);
+  }
+
+  Future<Map<String, dynamic>> kickPlayer(String targetId) {
+    return _socket.kickPlayer(targetId);
+  }
+
+  Future<Map<String, dynamic>> banPlayer(String targetId) {
+    return _socket.banPlayer(targetId);
+  }
+
+  void clearNotification() {
+    state = state.copyWith(notificationMessage: null);
   }
 
   void clearAccusation() {
