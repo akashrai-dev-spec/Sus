@@ -201,7 +201,7 @@ class RulesScreen extends ConsumerWidget {
                       icon: Icons.psychology_rounded,
                       title: 'The imposter guess',
                       desc:
-                          'If an imposter decodes the secret word from everyone’s clues, they can attempt a guess. Guessing correctly triggers an immediate, dramatic imposter victory!',
+                          'At any point during discussion, the imposter can submit a guess. Capitalization, extra spaces, punctuation, and words like "a" or "the" are ignored. Guess correctly to win on the spot.',
                     ),
                     const SizedBox(height: 10),
 
@@ -213,6 +213,28 @@ class RulesScreen extends ConsumerWidget {
                       title: 'The final vote',
                       desc:
                           'If all discussion rounds finish and the imposter survives, the group makes one final accusation. Guess wrong, and the imposter wins the match.',
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Special Rule 1: 3-Player Role Reversal
+                    _buildStepCard(
+                      colors: colors,
+                      step: 'R',
+                      icon: Icons.sync_rounded,
+                      title: '3-player role reversal',
+                      desc:
+                          'In 3-player games, wrongly accusing an innocent player triggers a role reversal. A new imposter and a new secret word are chosen. Each player gets a pop-up card showing their new role, and discussion restarts from the accuser.',
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Special Rule 2: Host Controls & Fair Play
+                    _buildStepCard(
+                      colors: colors,
+                      step: 'H',
+                      icon: Icons.shield_outlined,
+                      title: 'Host controls & fair play',
+                      desc:
+                          'Games need at least 3 players. If someone leaves and only 2 remain, the match pauses and returns everyone to the lobby so another player can join. Room hosts can kick or ban unwanted players from the lobby.',
                     ),
 
                     const SizedBox(height: 16),

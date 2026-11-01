@@ -26,12 +26,12 @@
 
 ## Overview
 
-**Sus** is a cross-platform social deduction party game built as a production-quality monorepo featuring:
-1. **Next.js Web Client (`web/`)**: Modern responsive web application with zero-install browser play, Web Audio API procedural sound synthesizers, offline pass-and-play, and real-time Socket.IO multiplayer.
-2. **Flutter Native Client (`app/`)**: High-performance mobile and desktop app running smoothly on Linux desktop, Android, and iOS.
-3. **Socket.IO Backend (`server/`)**: Server-authoritative Node.js + TypeScript engine with leak-proof role isolation and Argon2 PIN protection.
+**Sus** is a multiplayer social deduction game. The project contains three parts:
+1. **Web App (`web/`)**: Browser-based game built with Next.js and Tailwind CSS. Supports pass-and-play and online rooms with real-time Socket.IO.
+2. **Flutter App (`app/`)**: Client for Linux, Android, and iOS.
+3. **Game Server (`server/`)**: Fast TypeScript server running on Node.js with Socket.IO and Argon2 PIN hashing.
 
-Players are assigned roles secretly: normal players receive a secret word, while the imposter receives only the category. Through round-robin clue giving, tactical bluffing, instant accusations, and high-stakes imposter word guesses, normal players strive to unmask the imposter before the imposter bluffs their way to victory or guesses the secret word!
+Players are assigned roles secretly. Normal players receive a secret word, while the imposter receives only the category. Players take turns giving short clues. Normal players try to catch the imposter, while the imposter bluffs to blend in and tries to guess the word before getting caught.
 
 ---
 
@@ -53,55 +53,59 @@ Players are assigned roles secretly: normal players receive a secret word, while
 
 ## Quick Start
 
-### 🌐 Option 1: Play in Browser (Zero Install)
-Play right now in your web browser with zero downloads:
+### Option 1: Play in Browser (Zero Install)
+Run the web app locally:
 ```bash
 cd web
 npm run dev
 ```
-Open [http://localhost:3001](http://localhost:3001) in your browser. Choose **Local** for pass-and-play on one device, or **Online** to host a PIN-locked multiplayer room!
+Open [http://localhost:3001](http://localhost:3001) in your browser. Choose **Local** for pass-and-play on one device, or **Online** to host a PIN-protected room.
 
-### 🎮 Option 2: Play Right Now on Flutter (Local Offline)
-Want to play on desktop or mobile using Flutter?
-1. Launch the app on any device (`flutter run -d linux` or mobile).
-2. Select **Play** ››› on the home screen.
-3. Choose **Create a game** > select **Local** mode.
-4. Add your friends' names and pass the phone around to view your secret role cards!
+### Option 2: Play on Flutter (Local Offline)
+Run the mobile or desktop client:
+1. Launch the app (`flutter run -d linux` or mobile).
+2. Select **Play** on the home screen.
+3. Choose **Create a game** > **Local**.
+4. Enter player names and pass the device around to view role cards.
 
-### 📱 Option 3: Install on Your Android Phone
-Want the app installed on your Android device?
-- Read the simple [**Android APK Build & Install Guide**](docs/BUILD_APK.md).
-- Run `flutter build apk --release` to generate your `.apk`.
+### Option 3: Install on Android
+- Follow the [**Android APK Build & Install Guide**](docs/BUILD_APK.md).
+- Run `flutter build apk --release` to build your `.apk`.
 
-### 🚀 Option 4: Host Your Own Multiplayer Server (100% Free)
-Want to play online across different houses or cities?
-- Read the [**Production Server Hosting Guide**](docs/HOSTING.md).
-- We recommend **Render**: deploy the backend server in 1 click with zero devops.
+### Option 4: Deploy the Server
+- Follow the [**Production Server Hosting Guide**](docs/HOSTING.md).
+- Ready for one-click deployment on **Render** or **Vercel**.
 
 ---
 
 ## How to Play
 
-### The Setup
-1. **Join a Room**: 3 to 12 players gather in an online room or pass around a single device in local mode.
+### Setup
+1. **Join a Room**: 3 to 12 players gather in an online room or pass around one phone in local mode.
 2. **Secret Roles**:
-   - **Normal Players**: Know both the **Secret Word** and Category.
-   - **Imposters**: Only see the **Category**. They do NOT know the word!
+   - **Normal Players**: Receive both the secret word and category.
+   - **Imposters**: See only the category. They do not know the secret word.
 
-### The Gameplay Loop
-1. **Discussion & Clues**: Players take turns in a fixed random speaking order, giving exactly **one clue** about the secret word.
-   - Normal players give subtle clues that hint at the word without making it obvious.
-   - Imposters listen carefully, bluff their clue to blend in, and try to deduce the secret word.
-2. **Instant Accusation**:
-   - At any time, a player can slide **Accuse**.
-   - The game pauses and the accused player's role is revealed.
-   - **Caught Imposter**: The imposter is eliminated! If all imposters are caught, normal players win.
-   - **Innocent Player**: The accusation fails and the accuser permanently loses their accusation privilege for the rest of the game!
-3. **Imposter Word Guess**:
-   - Imposters can attempt to guess the secret word.
-   - If an imposter correctly guesses the word, the imposters **win immediately**!
+### Game Flow
+1. **Clue Rounds**: Players take turns in a set speaking order, giving one short clue about the secret word.
+   - Normal players give clues that hint at the word without making it obvious.
+   - Imposters listen, bluff during their turn, and try to deduce the word.
+2. **Accusations**:
+   - Any player can accuse another player during discussion.
+   - The game pauses to reveal the accused player's true role.
+   - **Imposter Caught**: The imposter is eliminated. If all imposters are eliminated, normal players win.
+   - **Innocent Accused**: In games with 4 or more players, the accuser loses their accusation privilege for the rest of the game.
+   - **3-Player Role Reversal**: In 3-player games, a wrong accusation does not eliminate the innocent player. Instead, roles reverse: the game picks a new imposter, selects a new secret word, shows each player their new role in an on-screen card, and restarts discussion from the accuser.
+3. **Imposter Guess**:
+   - The imposter can guess the secret word at any time during discussion.
+   - The guess is case-insensitive, ignores extra spaces and punctuation, and ignores leading articles like "a", "an", or "the".
+   - A correct guess wins the game on the spot for the imposter.
 4. **Final Vote**:
-   - If all discussion rounds conclude without catching the imposter, the group holds a final vote.
+   - If discussion rounds finish without catching the imposter, remaining players cast a final vote. A wrong vote hands victory to the imposter.
+
+### Room Management & Fair Play
+- **Minimum 3 Players**: If someone disconnects or leaves mid-match and drops the room below 3 players, the game pauses and returns everyone to the lobby so another player can join.
+- **Host Controls**: The room host can kick or permanently ban disruptive players from the lobby before the match begins.
 
 ---
 

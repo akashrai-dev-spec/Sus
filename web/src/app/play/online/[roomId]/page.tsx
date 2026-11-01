@@ -69,6 +69,9 @@ export default function OnlineGameRoomPage() {
   // Peek role modal
   const [peekModalOpen, setPeekModalOpen] = useState(false);
 
+  // Role reverse notification modal
+  const [roleReverseModalOpen, setRoleReverseModalOpen] = useState(false);
+
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   // Automatic room state synchronization
@@ -616,7 +619,7 @@ export default function OnlineGameRoomPage() {
             <div className="flex-1 flex flex-col justify-between py-2">
               <div>
                 {/* Round status banner */}
-                <div className="rounded-2xl bg-panel p-4 border border-line mb-4 flex items-center justify-between">
+                <div className="rounded-2xl bg-panel p-4 border border-line mb-3 flex items-center justify-between">
                   <div>
                     <span className="text-xs uppercase font-extrabold tracking-wider text-crimson-bright block">
                       {isFinalVote
@@ -628,19 +631,88 @@ export default function OnlineGameRoomPage() {
                         "Time’s up. Vote to accuse!"
                       ) : (
                         <>
-                          Current Speaker:{" "}
+                          Current Turn:{" "}
                           <span className="text-crimson-bright">
                             {currentSpeaker?.name || "Next Player"}
-                            {isMyTurn ? " (You!)" : ""}
+                            {isMyTurn ? " (Your Turn!)" : ""}
                           </span>
                         </>
                       )}
                     </h3>
+                    <p className="text-xs text-mute mt-0.5">
+                      {isMyTurn
+                        ? "You can type a clue below OR accuse a player."
+                        : `Waiting for ${currentSpeaker?.name || "current speaker"} to give a clue or accuse.`}
+                    </p>
                   </div>
-                  <div className="text-right text-xs text-mute">
+                  <div className="text-right text-xs text-mute shrink-0">
                     <span>Category</span>
                     <p className="font-bold text-bone">{category}</p>
                   </div>
+                </div>
+
+                {/* Imposter Word Guessing Status Banner */}
+                <div className="mb-3 px-3.5 py-2 rounded-xl bg-panel/60 border border-line/80 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-amber-400" />
+                    <span className="text-mute font-medium">
+                      {privateRole?.role === "imposter"
+                        ? "You are the Imposter: You can guess the secret word at any time below to win immediately!"
+                        : "Imposter Guessing: The imposter can submit a word guess at any time to win immediately."}
+                    </span>
+                  </div>
+                  {privateRole?.role === "imposter" && (
+                    <button
+                      onClick={() => {
+                        sounds.playTick();
+                        setGuessWord("");
+                        setGuessModalOpen(true);
+                      }}
+                      className="text-xs font-bold text-amber-400 hover:text-amber-300 underline ml-2 shrink-0"
+                    >
+                      Guess Word
+                    </button>
+                  )}
+                </div>
+
+                {/* Speaking Order & Turn Status Chips */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-3 no-scrollbar">
+                  {players.map((p: any) => {
+                    const isSpeaking = p.id === currentSpeakerId;
+                    const isPAlive = p.isAlive !== false;
+                    const hasGivenClue = clues.some((c: any) => c.playerId === p.id);
+                    return (
+                      <div
+                        key={p.id}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs shrink-0 transition-all ${
+                          !isPAlive
+                            ? "bg-black/30 border-line text-mute line-through opacity-50"
+                            : isSpeaking
+                            ? "bg-crimson/25 border-crimson text-white font-extrabold shadow-md shadow-crimson/30 animate-pulse"
+                            : hasGivenClue
+                            ? "bg-panel border-line text-bone font-medium"
+                            : "bg-panel/50 border-line text-mute"
+                        }`}
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: p.color || "#9a0f28" }}
+                        />
+                        <span>{p.name}</span>
+                        {!isPAlive ? (
+                          <span className="text-[10px] text-mute font-bold">(Out)</span>
+                        ) : isSpeaking ? (
+                          <span className="text-[10px] bg-crimson px-1.5 py-0.5 rounded-full text-white font-black">
+                            Speaking
+                          </span>
+                        ) : hasGivenClue ? (
+                          <span className="text-[10px] text-emerald-400 font-bold">✓ Clue given</span>
+                        ) : (
+                          <span className="text-[10px] text-mute font-medium">Waiting</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Clue Log */}
@@ -915,14 +987,72 @@ export default function OnlineGameRoomPage() {
             <button
               onClick={() => {
                 sounds.playTick();
+                const isReverse = Boolean(lastAccusation.roleReverse);
                 if (accusationKey) {
                   setDismissedAccusationKey(accusationKey);
                 }
                 clearAccusationResult();
+                if (isReverse) {
+                  setRoleReverseModalOpen(true);
+                }
               }}
               className="w-full py-3.5 rounded-xl bg-crimson hover:bg-crimson-bright text-white font-bold button-press"
             >
               Continue
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ROLE REVERSE REVEAL POPUP */}
+      {roleReverseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-full max-w-md rounded-3xl bg-panel-dark border-2 border-crimson p-7 shadow-2xl text-center">
+            <span className="inline-block px-3.5 py-1 rounded-full bg-crimson/25 border border-crimson text-crimson-bright text-xs font-black uppercase tracking-wider mb-4 animate-pulse">
+              Role Reversal Applied
+            </span>
+
+            {privateRole?.role === "imposter" ? (
+              <div>
+                <span className="text-xs uppercase font-extrabold tracking-widest text-mute block mb-1">
+                  Your New Assignment
+                </span>
+                <h2 className="text-3xl font-black text-white mb-3">You are now the IMPOSTER</h2>
+                <div className="rounded-2xl bg-crimson/20 border border-crimson/40 p-4 mb-4 text-left">
+                  <p className="text-xs text-crimson-bright font-bold uppercase mb-1">Category</p>
+                  <p className="text-lg font-black text-white mb-2">{category}</p>
+                  <p className="text-xs text-mute leading-relaxed">
+                    You do not know the secret word. Give believable clues, avoid suspicion, and guess the word to steal the win!
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <span className="text-xs uppercase font-extrabold tracking-widest text-mute block mb-1">
+                  Your New Assignment
+                </span>
+                <h2 className="text-3xl font-black text-white mb-3">Innocent Player</h2>
+                <div className="rounded-2xl bg-emerald-950/30 border border-emerald-500/40 p-4 mb-4 text-left">
+                  <p className="text-xs text-emerald-400 font-bold uppercase mb-1">New Secret Word</p>
+                  <p className="text-2xl font-black text-white tracking-wide mb-1">{secretWord}</p>
+                  <p className="text-xs text-mute">
+                    Category: <b className="text-bone">{category}</b>
+                  </p>
+                  <p className="text-xs text-mute leading-relaxed mt-2">
+                    A new secret word has been selected. Give subtle clues to hint at it without revealing it to the new imposter!
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                sounds.playTick();
+                setRoleReverseModalOpen(false);
+              }}
+              className="w-full py-4 rounded-2xl bg-crimson hover:bg-crimson-bright text-white font-extrabold text-base shadow-xl shadow-crimson/30 transition-all button-press"
+            >
+              Enter Discussion Box ›››
             </button>
           </div>
         </div>
