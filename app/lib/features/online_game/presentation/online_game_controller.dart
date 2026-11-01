@@ -6,7 +6,7 @@ import '../data/socket_service.dart';
 
 final socketServiceProvider = Provider<SocketService>((ref) {
   final service = SocketService();
-  ref.onDispose(() => service.disconnect());
+  ref.onDispose(() => service.dispose());
   return service;
 });
 
@@ -318,6 +318,14 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
 
   Future<Map<String, dynamic>> banPlayer(String targetId) {
     return _socket.banPlayer(targetId);
+  }
+
+  Future<Map<String, dynamic>> listRooms() {
+    return _socket.listRooms();
+  }
+
+  Future<Map<String, dynamic>> suggestRoomName([String? baseName]) {
+    return _socket.suggestRoomName(baseName);
   }
 
   void clearNotification() {

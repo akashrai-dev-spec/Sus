@@ -17,7 +17,7 @@ import {
   turnClueSchema,
 } from "./schemas.js";
 
-type AckCallback = (response: { ok: boolean; data?: any; code?: string; message?: string }) => void;
+type AckCallback = (response: { ok: boolean; data?: any; code?: string; message?: string; [key: string]: any }) => void;
 
 function safeAck(ack: AckCallback | undefined, ok: boolean, payload?: any): void {
   if (typeof ack !== "function") return;
@@ -28,6 +28,7 @@ function safeAck(ack: AckCallback | undefined, ok: boolean, payload?: any): void
       ok: false,
       code: payload?.code || "ERROR",
       message: payload?.message || "An unexpected error occurred.",
+      ...(typeof payload === "object" ? payload : {}),
     });
   }
 }
@@ -90,6 +91,19 @@ export function registerSocketHandlers(io: Namespace, roomManager: RoomManager):
       safeAck(ack, true, list);
     });
 
+    // 2.5 rooms:suggest-name
+    socket.on("rooms:suggest-name", (rawPayload: any, ack: AckCallback) => {
+      const session = roomManager.getSessionBySocket(socket.id);
+      const baseName =
+        typeof rawPayload?.baseName === "string" && rawPayload.baseName.trim().length > 0
+          ? rawPayload.baseName.trim()
+          : session?.name
+          ? `${session.name}'s room`
+          : "Sus Party";
+      const suggestedName = roomManager.suggestUniqueRoomName(baseName);
+      safeAck(ack, true, { suggestedName });
+    });
+
     // 3. rooms:create
     socket.on("rooms:create", async (rawPayload, ack: AckCallback) => {
       const session = roomManager.getSessionBySocket(socket.id);
@@ -120,6 +134,13 @@ export function registerSocketHandlers(io: Namespace, roomManager: RoomManager):
         safeAck(ack, true, state);
         io.to(room.id).emit("room:state", state);
       } catch (err: any) {
+        if (err.message === "ROOM_NAME_TAKEN" || err.code === "ROOM_NAME_TAKEN") {
+          return safeAck(ack, false, {
+            code: "ROOM_NAME_TAKEN",
+            message: `"${parsed.data.name.trim()}" is already occupied. Recommended: "${err.suggestedName}".`,
+            suggestedName: err.suggestedName,
+          });
+        }
         safeAck(ack, false, { code: "CREATE_FAILED", message: err.message });
       }
     });
@@ -633,11 +654,9 @@ export function registerSocketHandlers(io: Namespace, roomManager: RoomManager):
         }
 
         logger.info({ roomId: expiredRoom.id, playerId: pId }, "Disconnect grace expired: removing player");
-        expiredRoom.players = expiredRoom.players.filter((p) => p.id !== pId);
-        expiredRoom.disconnectTimers.delete(pId);
+        const { wasAborted } = roomManager.removeDisconnectedPlayer(expiredRoom, pId);
         io.to(expiredRoom.id).emit("room:playerLeft", { playerId: pId });
-        const aborted = roomManager.checkAndAbortGameIfUnderflow(expiredRoom);
-        if (aborted) {
+        if (wasAborted) {
           io.to(expiredRoom.id).emit("game:aborted", {
             reason: "Player count fell below 3. Returned to lobby so more players can join.",
           });

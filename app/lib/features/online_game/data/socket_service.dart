@@ -256,9 +256,28 @@ class SocketService {
     return emitWithAck('room:banPlayer', {'targetId': targetId});
   }
 
+  Future<Map<String, dynamic>> suggestRoomName([String? baseName]) {
+    return emitWithAck('rooms:suggest-name', {'baseName': baseName});
+  }
+
   void disconnect() {
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
+  }
+
+  void dispose() {
+    disconnect();
+    _roomStateController.close();
+    _roleController.close();
+    _turnController.close();
+    _clueController.close();
+    _accusationController.close();
+    _endedController.close();
+    _kickedController.close();
+    _bannedController.close();
+    _abortedController.close();
+    _connectionStateController.close();
+    _sessionInfoController.close();
   }
 }

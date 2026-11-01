@@ -105,6 +105,76 @@ describe("Socket.IO Server Integration Tests", () => {
     }
   });
 
+  it("rejects duplicate room names, recommends alternative, and provides rooms:suggest-name", async () => {
+    const creator1 = createClient();
+    const creator2 = createClient();
+
+    try {
+      await new Promise<any>((resolve) => {
+        creator1.emit("session:hello", { name: "Creator 1", color: "#9A0F28" }, resolve);
+      });
+      await new Promise<any>((resolve) => {
+        creator2.emit("session:hello", { name: "Creator 2", color: "#1D4ED8" }, resolve);
+      });
+
+      // 1. Creator 1 creates room "Secret Den"
+      const res1 = await new Promise<any>((resolve) => {
+        creator1.emit(
+          "rooms:create",
+          {
+            name: "Secret Den",
+            pin: "1111",
+            settings: { maxPlayers: 4, imposters: 1, rounds: 2, guessAttempts: 1, category: "Random" },
+          },
+          resolve,
+        );
+      });
+      expect(res1.ok).toBe(true);
+
+      // 2. Creator 2 attempts to create another room with the identical name "Secret Den"
+      const res2 = await new Promise<any>((resolve) => {
+        creator2.emit(
+          "rooms:create",
+          {
+            name: "Secret Den",
+            pin: "2222",
+            settings: { maxPlayers: 4, imposters: 1, rounds: 2, guessAttempts: 1, category: "Random" },
+          },
+          resolve,
+        );
+      });
+      expect(res2.ok).toBe(false);
+      expect(res2.code).toBe("ROOM_NAME_TAKEN");
+      expect(res2.suggestedName).toBe("Secret Den 2");
+      expect(res2.message).toContain("already occupied");
+
+      // 3. Test rooms:suggest-name socket event
+      const suggestRes = await new Promise<any>((resolve) => {
+        creator2.emit("rooms:suggest-name", { baseName: "Secret Den" }, resolve);
+      });
+      expect(suggestRes.ok).toBe(true);
+      expect(suggestRes.data.suggestedName).toBe("Secret Den 2");
+
+      // 4. Creator 2 creates with the suggested name -> succeeds!
+      const res3 = await new Promise<any>((resolve) => {
+        creator2.emit(
+          "rooms:create",
+          {
+            name: res2.suggestedName,
+            pin: "2222",
+            settings: { maxPlayers: 4, imposters: 1, rounds: 2, guessAttempts: 1, category: "Random" },
+          },
+          resolve,
+        );
+      });
+      expect(res3.ok).toBe(true);
+      expect(res3.data.name).toBe("Secret Den 2");
+    } finally {
+      creator1.disconnect();
+      creator2.disconnect();
+    }
+  });
+
   it("rejects wrong PIN and enforces rate limit after 5 attempts", async () => {
     const host = createClient();
     const attacker = createClient();

@@ -1,19 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, RefreshCw, Sparkles, ChevronDown } from "lucide-react";
+import { ArrowLeft, RefreshCw, Sparkles, ChevronDown, AlertCircle } from "lucide-react";
 import { useGameSocket } from "@/lib/socket/useGameSocket";
 import { getCategories } from "@/lib/engine/wordBank";
 import { sounds } from "@/lib/audio/soundEffects";
 
 export default function CreateGamePage() {
   const router = useRouter();
-  const { createRoom } = useGameSocket();
+  const { createRoom, listRooms, suggestRoomName, profile } = useGameSocket();
 
   const [mode, setMode] = useState<"Online" | "Local">("Online");
   const [roomName, setRoomName] = useState("Sus Party");
+  const [existingRoomNames, setExistingRoomNames] = useState<string[]>([]);
   const [pin, setPin] = useState(() => Math.floor(1000 + Math.random() * 9000).toString());
   const [maxPlayers, setMaxPlayers] = useState(6);
   const [imposters, setImposters] = useState(1);
@@ -25,6 +26,35 @@ export default function CreateGamePage() {
   const [customCategory, setCustomCategory] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Load existing rooms on mount to guarantee initial room name is never taken
+  useEffect(() => {
+    let mounted = true;
+    const checkRoomAvailability = async () => {
+      try {
+        const rooms = await listRooms();
+        if (!mounted) return;
+        const names = rooms
+          .map((r: any) => (r.name || "").trim().toLowerCase())
+          .filter(Boolean);
+        setExistingRoomNames(names);
+
+        const base = profile?.name ? `${profile.name}'s Room` : "Sus Party";
+        if (names.includes(base.toLowerCase()) || names.includes("sus party")) {
+          const suggested = await suggestRoomName(base);
+          if (mounted && suggested) {
+            setRoomName(suggested);
+          }
+        } else {
+          setRoomName(base);
+        }
+      } catch (_) {}
+    };
+    checkRoomAvailability();
+    return () => {
+      mounted = false;
+    };
+  }, [listRooms, suggestRoomName, profile?.name]);
 
   // Local player names
   const [localPlayers, setLocalPlayers] = useState<string[]>([
@@ -109,7 +139,15 @@ export default function CreateGamePage() {
       router.push(`/play/online/${room.id}`);
     } catch (err: any) {
       sounds.playFailure();
-      setErrorMsg(err.message || "Failed to create room.");
+      if (err.code === "ROOM_NAME_TAKEN" || err.message?.includes("already occupied")) {
+        const unique = err.suggestedName || (await suggestRoomName(roomName));
+        setRoomName(unique);
+        setErrorMsg(
+          `"${roomName}" is already occupied. We updated it to "${unique}". Click Create Game to proceed.`
+        );
+      } else {
+        setErrorMsg(err.message || "Failed to create room.");
+      }
       setSubmitting(false);
     }
   };
@@ -167,17 +205,57 @@ export default function CreateGamePage() {
         {mode === "Online" ? (
           <>
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-mute block mb-2">
-                Room Name
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-mute block">
+                  Room Name
+                </label>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    sounds.playTick();
+                    const suggested = await suggestRoomName(roomName);
+                    setRoomName(suggested);
+                  }}
+                  className="flex items-center gap-1 text-xs text-crimson-bright hover:underline font-semibold"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Suggest Name</span>
+                </button>
+              </div>
               <input
                 type="text"
                 maxLength={25}
                 value={roomName}
-                onChange={(e) => setRoomName(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-panel border-1.5 border-line text-white font-medium focus:border-crimson focus:outline-none"
+                onChange={(e) => {
+                  setRoomName(e.target.value);
+                  setErrorMsg(null);
+                }}
+                className={`w-full px-4 py-3 rounded-xl bg-panel border-1.5 font-medium focus:outline-none ${
+                  existingRoomNames.includes(roomName.trim().toLowerCase())
+                    ? "border-amber-500/60 text-amber-200"
+                    : "border-line text-white focus:border-crimson"
+                }`}
                 placeholder="Room Name"
               />
+              {existingRoomNames.includes(roomName.trim().toLowerCase()) && (
+                <div className="mt-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-300">
+                  <span className="flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                    <span>This name is currently occupied by another room.</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      sounds.playTick();
+                      const unique = await suggestRoomName(roomName);
+                      setRoomName(unique);
+                    }}
+                    className="ml-2 font-bold underline hover:text-white shrink-0"
+                  >
+                    Use available name
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>
