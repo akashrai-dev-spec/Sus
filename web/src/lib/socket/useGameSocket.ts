@@ -94,9 +94,46 @@ function initGlobalSocketListeners(s: Socket) {
     notifyStateChange();
   });
 
+  s.on("game:accusation", (result: any) => {
+    sharedAccusationResult = result;
+    notifyStateChange();
+  });
+
   s.on("accuse:result", (result: any) => {
     sharedAccusationResult = result;
     notifyStateChange();
+  });
+
+  s.on("game:clue", (clue: any) => {
+    if (sharedRoomState) {
+      const existingClues = sharedRoomState.clues || [];
+      sharedRoomState = {
+        ...sharedRoomState,
+        clues: [...existingClues, clue],
+      };
+      notifyStateChange();
+    }
+  });
+
+  s.on("game:turn", (turn: any) => {
+    if (sharedRoomState) {
+      sharedRoomState = {
+        ...sharedRoomState,
+        currentTurn: turn,
+      };
+      notifyStateChange();
+    }
+  });
+
+  s.on("game:ended", (ended: any) => {
+    if (sharedRoomState) {
+      sharedRoomState = {
+        ...sharedRoomState,
+        phase: "ended",
+        ended,
+      };
+      notifyStateChange();
+    }
   });
 
   s.on("game:error", (err: any) => {
@@ -223,14 +260,19 @@ export function useGameSocket() {
     return new Promise((resolve, reject) => {
       s.emit("game:start", {}, (res: any) => {
         if (res?.ok) resolve(res.data);
-        else reject(new Error(res?.error?.message || "Failed to start game"));
+        else reject(new Error(res?.message || res?.error?.message || res?.code || "Failed to start game"));
       });
     });
   }, []);
 
   const setReady = useCallback(async () => {
     const s = socketRef.current || getGameSocket();
-    s.emit("game:ready", {});
+    return new Promise((resolve, reject) => {
+      s.emit("game:ready", {}, (res: any) => {
+        if (res?.ok) resolve(res.data);
+        else reject(new Error(res?.message || res?.error?.message || res?.code || "Failed to mark ready"));
+      });
+    });
   }, []);
 
   const submitClue = useCallback(async (text: string) => {
@@ -238,7 +280,7 @@ export function useGameSocket() {
     return new Promise((resolve, reject) => {
       s.emit("turn:clue", { text }, (res: any) => {
         if (res?.ok) resolve(res.data);
-        else reject(new Error(res?.error?.message || "Failed to submit clue"));
+        else reject(new Error(res?.message || res?.error?.message || res?.code || "Failed to submit clue"));
       });
     });
   }, []);
@@ -248,7 +290,7 @@ export function useGameSocket() {
     return new Promise((resolve, reject) => {
       s.emit("accuse:submit", { targetId }, (res: any) => {
         if (res?.ok) resolve(res.data);
-        else reject(new Error(res?.error?.message || "Failed to accuse"));
+        else reject(new Error(res?.message || res?.error?.message || res?.code || "Failed to accuse"));
       });
     });
   }, []);
@@ -263,7 +305,7 @@ export function useGameSocket() {
     return new Promise((resolve, reject) => {
       s.emit("imposter:guess", { word }, (res: any) => {
         if (res?.ok) resolve(res.data);
-        else reject(new Error(res?.error?.message || "Failed to submit guess"));
+        else reject(new Error(res?.message || res?.error?.message || res?.code || "Failed to submit guess"));
       });
     });
   }, []);

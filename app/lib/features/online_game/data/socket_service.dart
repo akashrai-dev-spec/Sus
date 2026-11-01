@@ -5,6 +5,8 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 class SocketService {
   io.Socket? _socket;
   String? _connectedUrl;
+  String? _playerId;
+  String? _resumeToken;
 
   final _roomStateController = StreamController<Map<String, dynamic>>.broadcast();
   final _roleController = StreamController<Map<String, dynamic>>.broadcast();
@@ -13,6 +15,7 @@ class SocketService {
   final _accusationController = StreamController<Map<String, dynamic>>.broadcast();
   final _endedController = StreamController<Map<String, dynamic>>.broadcast();
   final _connectionStateController = StreamController<bool>.broadcast();
+  final _sessionInfoController = StreamController<Map<String, dynamic>>.broadcast();
 
   Stream<Map<String, dynamic>> get onRoomState => _roomStateController.stream;
   Stream<Map<String, dynamic>> get onRole => _roleController.stream;
@@ -21,8 +24,11 @@ class SocketService {
   Stream<Map<String, dynamic>> get onAccusation => _accusationController.stream;
   Stream<Map<String, dynamic>> get onEnded => _endedController.stream;
   Stream<bool> get onConnectionChanged => _connectionStateController.stream;
+  Stream<Map<String, dynamic>> get onSessionInfo => _sessionInfoController.stream;
 
   bool get isConnected => _socket?.connected ?? false;
+  String? get playerId => _playerId;
+  String? get resumeToken => _resumeToken;
 
   void connect({
     required String serverUrl,
@@ -59,10 +65,10 @@ class SocketService {
       debugPrint('[Socket] Connection error to $uri: $err');
     });
 
-    _socket!.onConnect((_) {
+    _socket!.onConnect((_) async {
       debugPrint('[Socket] Connected to $uri');
       _connectionStateController.add(true);
-      emitHello(name: name, color: color, resumeToken: resumeToken);
+      await emitHello(name: name, color: color, resumeToken: resumeToken);
     });
 
     _socket!.onDisconnect((_) {
@@ -145,12 +151,19 @@ class SocketService {
     required String name,
     required String color,
     String? resumeToken,
-  }) {
-    return emitWithAck('session:hello', {
+  }) async {
+    final res = await emitWithAck('session:hello', {
       'name': name,
       'color': color,
       if (resumeToken != null) 'resumeToken': resumeToken,
     });
+    if (res['ok'] == true && res['data'] is Map) {
+      final data = Map<String, dynamic>.from(res['data'] as Map);
+      _playerId = data['playerId'] as String?;
+      _resumeToken = data['resumeToken'] as String?;
+      _sessionInfoController.add(data);
+    }
+    return res;
   }
 
   Future<Map<String, dynamic>> listRooms() {

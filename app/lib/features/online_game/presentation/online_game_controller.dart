@@ -83,6 +83,10 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
   void _init() {
+    if (_socket.playerId != null) {
+      state = state.copyWith(playerId: _socket.playerId);
+    }
+
     _socket.connect(
       serverUrl: _profile.serverUrl,
       name: _profile.name,
@@ -99,6 +103,16 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
     );
 
     _subscriptions.add(
+      _socket.onSessionInfo.listen((info) {
+        if (!mounted) return;
+        final pId = info['playerId'] as String?;
+        if (pId != null) {
+          state = state.copyWith(playerId: pId);
+        }
+      }),
+    );
+
+    _subscriptions.add(
       _socket.onRoomState.listen((data) {
         if (!mounted) return;
         final rawClues = data['clues'] as List?;
@@ -106,7 +120,19 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
             ? rawClues.map((e) => Map<String, dynamic>.from(e as Map)).toList()
             : state.liveClues;
 
+        String? resolvedPlayerId = state.playerId ?? _socket.playerId;
+        if (resolvedPlayerId == null && data['players'] is List) {
+          final matched = (data['players'] as List).firstWhere(
+            (p) => p is Map && p['name'] == _profile.name,
+            orElse: () => null,
+          );
+          if (matched != null && matched['id'] != null) {
+            resolvedPlayerId = matched['id'] as String;
+          }
+        }
+
         state = state.copyWith(
+          playerId: resolvedPlayerId,
           roomState: data,
           liveClues: clues,
         );

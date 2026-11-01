@@ -81,7 +81,7 @@ export default function OnlineGameRoomPage() {
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [roomState?.gameState?.clues]);
+  }, [roomState?.clues?.length]);
 
   if (!isConnected || !roomState) {
     return (
@@ -113,13 +113,44 @@ export default function OnlineGameRoomPage() {
     );
   }
 
-  const isHost = roomState.hostId === profile?.id;
-  const isPlaying = roomState.status === "in_game" && roomState.gameState;
-  const gameState = roomState.gameState;
-  const phase = gameState?.currentPhase;
+  const phaseName = roomState.phase || "lobby";
+  const isPlaying = phaseName !== "lobby";
 
-  const currentSpeakerId = phase?.currentSpeakerId;
-  const isMyTurn = currentSpeakerId === profile?.id;
+  const players = (roomState.players || []) as any[];
+  const settings = (roomState.settings || {}) as any;
+  const clues = (roomState.clues || []) as any[];
+
+  const myPlayerId =
+    profile?.id ||
+    players.find((p: any) => p.name === profile?.name)?.id ||
+    "";
+  const myPlayer = players.find(
+    (p: any) => (myPlayerId && p.id === myPlayerId) || p.name === profile?.name
+  );
+  const isHost = Boolean(
+    roomState.hostId &&
+      (roomState.hostId === myPlayerId ||
+        roomState.hostId === profile?.id ||
+        players.some((p: any) => p.id === roomState.hostId && p.name === profile?.name))
+  );
+
+  const currentTurn = roomState.currentTurn;
+  const currentSpeakerId = currentTurn?.speakerId;
+  const currentSpeaker = players.find((p: any) => p.id === currentSpeakerId);
+
+  const isAlive = myPlayer ? myPlayer.isAlive !== false : true;
+  const isMyTurn = Boolean(
+    currentSpeakerId &&
+      (currentSpeakerId === myPlayerId || (myPlayer && currentSpeakerId === myPlayer.id)) &&
+      isAlive
+  );
+
+  const category = privateRole?.category || settings.category || "General";
+  const secretWord = roomState.ended?.secretWord || privateRole?.word || "Secret";
+  const currentRound = currentTurn?.round || 1;
+  const totalRounds = settings.rounds || 2;
+  const isFinalVote = Boolean(roomState.isFinalVote || phaseName === "finalVote");
+  const lastAccusation = accusationResult || roomState.lastAccusation;
 
   const handleStartGame = async () => {
     sounds.playTick();
@@ -294,7 +325,7 @@ export default function OnlineGameRoomPage() {
       {isPlaying && (
         <div className="flex-1 flex flex-col justify-between py-2">
           {/* Phase: Role Reveal */}
-          {phase?.name === "roleReveal" && (
+          {phaseName === "roleReveal" && (
             <div className="flex-1 flex flex-col justify-between py-4 animate-in fade-in">
               <div className="text-center mb-6">
                 <span className="text-xs uppercase font-extrabold tracking-widest text-crimson-bright">
@@ -335,7 +366,7 @@ export default function OnlineGameRoomPage() {
                         IMPOSTER
                       </h2>
                       <p className="text-sm text-white/90 font-medium max-w-xs">
-                        Category: <b>{privateRole.category}</b>. Bluff your way through and deduce the
+                        Category: <b>{category}</b>. Bluff your way through and deduce the
                         secret word!
                       </p>
                     </div>
@@ -345,10 +376,10 @@ export default function OnlineGameRoomPage() {
                         Secret Word
                       </span>
                       <h2 className="text-4xl font-black text-white tracking-wide mb-3">
-                        {privateRole?.word}
+                        {secretWord}
                       </h2>
                       <p className="text-sm text-mute font-medium max-w-xs">
-                        Category: <b>{privateRole?.category}</b>. Describe it subtly without saying the
+                        Category: <b>{category}</b>. Describe it subtly without saying the
                         word!
                       </p>
                     </div>
@@ -381,25 +412,25 @@ export default function OnlineGameRoomPage() {
           )}
 
           {/* Phase: Discussion / Final Vote */}
-          {(phase?.name === "discussion" || phase?.name === "finalVote") && (
+          {(phaseName === "discussion" || phaseName === "finalVote" || phaseName === "accusationPending") && (
             <div className="flex-1 flex flex-col justify-between py-2">
               <div>
                 {/* Round status banner */}
                 <div className="rounded-2xl bg-panel p-4 border border-line mb-4 flex items-center justify-between">
                   <div>
                     <span className="text-xs uppercase font-extrabold tracking-wider text-crimson-bright block">
-                      {phase?.name === "finalVote"
-                        ? `Final Vote • Round ${phase.voteRound || 1}`
-                        : `Round ${phase.round} of ${gameState.settings.rounds}`}
+                      {isFinalVote
+                        ? `Final Vote • Final Accusation`
+                        : `Round ${currentRound} of ${totalRounds}`}
                     </span>
                     <h3 className="text-xl font-black text-white">
-                      {phase?.name === "finalVote" ? (
+                      {isFinalVote ? (
                         "Time’s up. Vote to accuse!"
                       ) : (
                         <>
                           Current Speaker:{" "}
                           <span className="text-crimson-bright">
-                            {gameState.players.find((p: any) => p.id === currentSpeakerId)?.name}
+                            {currentSpeaker?.name || "Next Player"}
                             {isMyTurn ? " (You!)" : ""}
                           </span>
                         </>
@@ -408,7 +439,7 @@ export default function OnlineGameRoomPage() {
                   </div>
                   <div className="text-right text-xs text-mute">
                     <span>Category</span>
-                    <p className="font-bold text-bone">{gameState.category}</p>
+                    <p className="font-bold text-bone">{category}</p>
                   </div>
                 </div>
 
@@ -417,23 +448,23 @@ export default function OnlineGameRoomPage() {
                   <span className="text-[11px] font-bold uppercase tracking-wider text-mute mb-1">
                     Live Clue Log
                   </span>
-                  {gameState.clues?.length === 0 ? (
+                  {clues.length === 0 ? (
                     <div className="flex-1 flex items-center justify-center text-xs text-mute italic">
                       No clues given yet. Waiting for first speaker...
                     </div>
                   ) : (
-                    gameState.clues?.map((clue: any, idx: number) => {
-                      const speaker = gameState.players.find((p: any) => p.id === clue.playerId);
+                    clues.map((clue: any, idx: number) => {
+                      const speaker = players.find((p: any) => p.id === clue.playerId);
                       return (
                         <div key={idx} className="flex items-start gap-2.5 text-xs">
                           <div
                             className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-0.5"
                             style={{ backgroundColor: speaker?.color || "#9a0f28" }}
                           >
-                            {speaker?.name?.[0]}
+                            {speaker?.name?.[0] || "?"}
                           </div>
                           <div className="bg-panel px-3 py-2 rounded-xl rounded-tl-sm border border-line/60 max-w-[80%]">
-                            <span className="font-bold text-bone block">{speaker?.name}</span>
+                            <span className="font-bold text-bone block">{speaker?.name || "Player"}</span>
                             <p className="text-mute mt-0.5 text-sm">{clue.text}</p>
                           </div>
                         </div>
@@ -446,7 +477,7 @@ export default function OnlineGameRoomPage() {
 
               {/* Player Turn Controls */}
               <div className="space-y-3 pt-2">
-                {isMyTurn && phase?.name === "discussion" ? (
+                {isMyTurn && phaseName === "discussion" ? (
                   <form onSubmit={handleSendClue} className="flex gap-2">
                     <input
                       type="text"
@@ -467,9 +498,9 @@ export default function OnlineGameRoomPage() {
                   </form>
                 ) : (
                   <div className="p-3 rounded-xl bg-panel/60 border border-line text-center text-xs text-mute">
-                    {phase?.name === "discussion"
+                    {phaseName === "discussion"
                       ? `Waiting for ${
-                          gameState.players.find((p: any) => p.id === currentSpeakerId)?.name
+                          currentSpeaker?.name || "current speaker"
                         } to give a clue...`
                       : "Group is deciding the final accusation..."}
                   </div>
@@ -504,12 +535,12 @@ export default function OnlineGameRoomPage() {
           )}
 
           {/* Phase: Ended */}
-          {phase?.name === "ended" && (
+          {phaseName === "ended" && (
             <div className="flex-1 flex flex-col justify-between py-6 text-center animate-in fade-in">
               <div>
                 <span
                   className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full border inline-block mb-3 ${
-                    phase.winner === "normal"
+                    roomState.ended?.winner === "normal"
                       ? "bg-emerald-950/60 border-emerald-500/40 text-emerald-400"
                       : "bg-crimson/20 border-crimson text-crimson-bright"
                   }`}
@@ -517,19 +548,21 @@ export default function OnlineGameRoomPage() {
                   Match Finished
                 </span>
                 <h1 className="text-4xl font-black text-white mb-2">
-                  {phase.winner === "normal" ? "Normals Win!" : "Imposters Win!"}
+                  {roomState.ended?.winner === "normal" ? "Normals Win!" : "Imposters Win!"}
                 </h1>
-                <p className="text-sm text-mute max-w-sm mx-auto mb-6">{phase.reason}</p>
+                <p className="text-sm text-mute max-w-sm mx-auto mb-6">
+                  {roomState.ended?.reason || "Game has ended."}
+                </p>
 
                 <div className="rounded-2xl bg-panel p-6 border border-line mb-6 text-center max-w-md mx-auto">
                   <span className="text-xs uppercase tracking-widest text-mute block mb-1">
                     Secret Word Was
                   </span>
                   <span className="text-3xl font-black text-white tracking-wide block mb-3">
-                    {gameState.secretWord}
+                    {secretWord}
                   </span>
                   <span className="text-xs text-mute">
-                    Category: <b className="text-bone">{gameState.category}</b>
+                    Category: <b className="text-bone">{category}</b>
                   </span>
                 </div>
 
@@ -538,7 +571,7 @@ export default function OnlineGameRoomPage() {
                   <span className="text-xs font-bold uppercase tracking-wider text-mute block text-left mb-1">
                     Player Roles
                   </span>
-                  {gameState.players?.map((p: any) => {
+                  {players.map((p: any) => {
                     const isImp = p.role === "imposter";
                     return (
                       <div
@@ -548,9 +581,9 @@ export default function OnlineGameRoomPage() {
                         <div className="flex items-center gap-3">
                           <div
                             className="h-8 w-8 rounded-full flex items-center justify-center font-bold text-white text-xs"
-                            style={{ backgroundColor: p.color }}
+                            style={{ backgroundColor: p.color || "#9a0f28" }}
                           >
-                            {p.name[0]}
+                            {p.name?.[0]}
                           </div>
                           <span className="font-bold text-sm text-bone">{p.name}</span>
                         </div>
@@ -595,8 +628,8 @@ export default function OnlineGameRoomPage() {
             </p>
 
             <div className="space-y-2 mb-6">
-              {gameState.players
-                ?.filter((p: any) => p.isAlive && p.id !== profile?.id)
+              {players
+                .filter((p: any) => p.isAlive !== false && p.id !== myPlayerId)
                 .map((p: any) => (
                   <button
                     key={p.id}
@@ -639,23 +672,23 @@ export default function OnlineGameRoomPage() {
       )}
 
       {/* ACCUSATION RESULT POPUP */}
-      {accusationResult && !accusationResult.isGameOver && (
+      {lastAccusation && !lastAccusation.isGameOver && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl bg-panel-dark p-6 border-2 border-crimson shadow-2xl text-center animate-in fade-in zoom-in-95 duration-150">
             <span className="text-xs uppercase font-extrabold tracking-widest text-mute block mb-2">
               Role Revealed
             </span>
             <h3 className="text-2xl font-black text-white mb-2">
-              {gameState.players.find((p: any) => p.id === accusationResult.accusedId)?.name}
+              {players.find((p: any) => p.id === (lastAccusation.accusedId || lastAccusation.targetId))?.name || "Player"}
             </h3>
             <div
               className={`p-4 rounded-xl my-4 text-xl font-black tracking-wider ${
-                accusationResult.isImposter
+                lastAccusation.isImposter || lastAccusation.outcome === "caught"
                   ? "bg-crimson/30 text-crimson-bright border border-crimson"
                   : "bg-white/10 text-bone border border-line"
               }`}
             >
-              {accusationResult.isImposter
+              {lastAccusation.isImposter || lastAccusation.outcome === "caught"
                 ? "IMPOSTER! (Eliminated)"
                 : "NORMAL PLAYER (Innocent!)"}
             </div>
@@ -681,7 +714,7 @@ export default function OnlineGameRoomPage() {
           >
             <h3 className="text-xl font-bold text-white mb-1">Guess the Secret Word</h3>
             <p className="text-xs text-mute mb-4">
-              Category: <b className="text-bone">{gameState.category}</b>. Guess correctly to win
+              Category: <b className="text-bone">{category}</b>. Guess correctly to win
               instantly!
             </p>
 
