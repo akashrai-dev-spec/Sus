@@ -124,7 +124,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
     final settings = Map<String, dynamic>.from(room['settings'] as Map? ?? {});
-    final isHost = online.isHost;
+    final isHost = online.isHost ||
+        (room['hostId'] != null &&
+            players.any((p) => p['id'] == room['hostId'] && p['name'] == profile.name));
     final playerCount = players.length;
     final maxPlayers = room['max'] as int? ?? 6;
 
@@ -177,7 +179,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                   final pName = p['name'] as String;
                   final pColor = p['color'] as String;
                   final pIsHost = p['isHost'] as bool? ?? false;
-                  final isYou = pId == online.playerId;
+                  final isYou = pId == online.playerId || pName == profile.name;
 
                   return PlayerTile(
                     name: pName,

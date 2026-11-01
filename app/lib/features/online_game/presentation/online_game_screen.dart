@@ -324,13 +324,19 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
     final totalRounds = settings['rounds'] ?? 2;
     final isFinalVote = room['isFinalVote'] as bool? ?? false;
 
+    final myPlayerId = online.playerId ??
+        players.firstWhere(
+          (p) => p['name'] == profile.name,
+          orElse: () => <String, dynamic>{},
+        )['id'] as String?;
+
     final myPlayer = players.firstWhere(
-      (p) => p['id'] == online.playerId,
+      (p) => (myPlayerId != null && p['id'] == myPlayerId) || p['name'] == profile.name,
       orElse: () => <String, dynamic>{},
     );
     final isAlive = myPlayer['isAlive'] as bool? ?? true;
     final usedAccusation = myPlayer['usedAccusation'] as bool? ?? false;
-    final isMyTurn = speakerId == online.playerId && isAlive;
+    final isMyTurn = (speakerId != null && (speakerId == myPlayerId || speakerId == myPlayer['id'])) && isAlive;
 
     final speakerPlayer = players.firstWhere(
       (p) => p['id'] == speakerId,
@@ -341,7 +347,7 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
     final categoryName = online.myCategory ?? settings['category'] ?? 'General';
 
     final aliveTargets = players
-        .where((p) => p['id'] != online.playerId && p['isAlive'] == true)
+        .where((p) => p['id'] != (myPlayerId ?? myPlayer['id']) && p['isAlive'] == true)
         .toList();
 
     return Scaffold(
