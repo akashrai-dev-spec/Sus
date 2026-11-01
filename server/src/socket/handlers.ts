@@ -388,6 +388,23 @@ export function registerSocketHandlers(io: Namespace, roomManager: RoomManager):
 
         io.to(room.id).emit("game:accusation", result);
 
+        if (result.roleReverse) {
+          for (const p of room.players) {
+            const clientSocket = io.sockets.get(p.socketId);
+            if (clientSocket) {
+              sendPrivateRole(clientSocket, room, p.id);
+            }
+          }
+        }
+
+        if (room.gameState.currentPhase.name === "discussion") {
+          io.to(room.id).emit("game:turn", {
+            speakerId: GameEngine.getCurrentSpeakerId(room.gameState),
+            round: room.gameState.currentPhase.round,
+            turnIndex: room.gameState.currentPhase.turnIndex,
+          });
+        }
+
         if (room.gameState.currentPhase.name === "ended") {
           const ended = room.gameState.currentPhase;
           const allRoles: Record<string, string> = {};

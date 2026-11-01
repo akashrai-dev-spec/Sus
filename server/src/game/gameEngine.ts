@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { WordFilter } from "../util/wordFilter.js";
+import { pickSecretWord } from "../words/wordBank.js";
 import {
   AccusationResult,
   GameClue,
@@ -345,6 +346,57 @@ export class GameEngine {
           currentPhase: { name: "finalVote", voteRound: prevVote + 1 },
         };
       }
+    }
+
+    if (!isHit && state.players.filter((p) => p.isAlive).length <= 3) {
+      // Role Reverse mechanic for 3-player groups:
+      // When someone accuses an innocent player, roles reverse, a new imposter is selected,
+      // a fresh secret word is chosen, and discussion restarts from the accuser!
+      const prevImposter = state.players.find((p) => p.role === "imposter")?.id;
+      const otherAlive = state.players.filter((p) => p.isAlive && p.id !== prevImposter);
+      const candidates = otherAlive.length > 0 ? otherAlive : state.players.filter((p) => p.isAlive);
+      const newImposterId = candidates[Math.floor(Math.random() * candidates.length)].id;
+
+      const { word: newWord, category: newCategory } = pickSecretWord(
+        state.settings.category,
+        state.settings.customWord,
+        state.settings.customCategory,
+      );
+
+      const reversedPlayers = state.players.map((p) => ({
+        ...p,
+        role: (p.id === newImposterId ? "imposter" : "normal") as PlayerRole,
+        usedAccusation: false,
+        remainingGuesses: state.settings.guessAttempts,
+      }));
+
+      const accuserIndex = pend.accuserId
+        ? state.speakingOrder.indexOf(pend.accuserId)
+        : -1;
+      const turnIndex = accuserIndex !== -1 ? accuserIndex : 0;
+
+      const reverseResult: AccusationResult = {
+        accuserId: pend.accuserId,
+        targetId: pend.targetId,
+        revealedRole: target.role as PlayerRole,
+        outcome: "innocentFail",
+        isFinalVote: false,
+        roleReverse: true,
+      };
+
+      return {
+        ...state,
+        players: reversedPlayers,
+        secretWord: newWord,
+        category: newCategory,
+        clues: [],
+        lastAccusationResult: reverseResult,
+        currentPhase: {
+          name: "discussion",
+          round: 1,
+          turnIndex,
+        },
+      };
     }
 
     return {

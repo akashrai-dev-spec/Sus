@@ -13,6 +13,7 @@ class AccusationResult {
     required this.revealedRole,
     required this.outcome,
     required this.isFinalVote,
+    this.roleReverse = false,
   });
 
   final String? accuserId;
@@ -20,6 +21,7 @@ class AccusationResult {
   final PlayerRole revealedRole;
   final AccusationOutcome outcome;
   final bool isFinalVote;
+  final bool roleReverse;
 
   Map<String, dynamic> toJson() => {
         if (accuserId != null) 'accuserId': accuserId,
@@ -27,6 +29,7 @@ class AccusationResult {
         'revealedRole': revealedRole.name,
         'outcome': outcome.name,
         'isFinalVote': isFinalVote,
+        'roleReverse': roleReverse,
       };
 
   factory AccusationResult.fromJson(Map<String, dynamic> json) {
@@ -36,6 +39,7 @@ class AccusationResult {
       revealedRole: PlayerRole.values.byName(json['revealedRole'] as String),
       outcome: AccusationOutcome.values.byName(json['outcome'] as String),
       isFinalVote: (json['isFinalVote'] as bool?) ?? false,
+      roleReverse: (json['roleReverse'] as bool?) ?? false,
     );
   }
 }

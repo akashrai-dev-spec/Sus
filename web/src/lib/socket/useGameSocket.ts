@@ -362,6 +362,12 @@ export function useGameSocket() {
     },
     clearAccusationResult: () => {
       sharedAccusationResult = null;
+      if (sharedRoomState?.lastAccusation) {
+        sharedRoomState = {
+          ...sharedRoomState,
+          lastAccusation: undefined,
+        };
+      }
       notifyStateChange();
     },
     updateProfile,

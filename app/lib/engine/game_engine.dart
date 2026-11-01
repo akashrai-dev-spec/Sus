@@ -342,6 +342,47 @@ class GameEngine {
       }
     }
 
+    if (!isHit && state.players.where((p) => p.isAlive).length <= 3) {
+      // Role Reverse mechanic for 3-player groups:
+      // When someone accuses an innocent player, roles reverse, a new imposter is selected,
+      // and discussion restarts from the accuser!
+      final prevImposter = state.players.firstWhere(
+        (p) => p.isImposter,
+        orElse: () => state.players.first,
+      ).id;
+      final otherAlive = state.players.where((p) => p.isAlive && p.id != prevImposter).toList();
+      final candidates = otherAlive.isNotEmpty ? otherAlive : state.players.where((p) => p.isAlive).toList();
+      candidates.shuffle();
+      final newImposterId = candidates.first.id;
+
+      final reversedPlayers = state.players.map((p) => p.copyWith(
+        role: p.id == newImposterId ? PlayerRole.imposter : PlayerRole.normal,
+        usedAccusation: false,
+        remainingGuesses: state.settings.guessAttempts,
+      )).toList();
+
+      final accuserIndex = pend.accuserId != null
+          ? state.speakingOrder.indexOf(pend.accuserId!)
+          : -1;
+      final turnIndex = accuserIndex != -1 ? accuserIndex : 0;
+
+      final reverseResult = AccusationResult(
+        accuserId: pend.accuserId,
+        targetId: pend.targetId,
+        revealedRole: target.role!,
+        outcome: AccusationOutcome.innocentFail,
+        isFinalVote: false,
+        roleReverse: true,
+      );
+
+      return state.copyWith(
+        players: reversedPlayers,
+        clues: [],
+        lastAccusationResult: reverseResult,
+        currentPhase: DiscussionPhase(round: 1, turnIndex: turnIndex),
+      );
+    }
+
     // Normal discussion phase resumes
     return state.copyWith(
       players: updatedPlayers,

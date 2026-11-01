@@ -57,6 +57,7 @@ export interface AccusationResult {
   revealedRole: PlayerRole;
   outcome: AccusationOutcome;
   isFinalVote: boolean;
+  roleReverse?: boolean;
 }
 
 export interface GameState {

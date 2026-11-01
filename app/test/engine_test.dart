@@ -116,6 +116,36 @@ void main() {
         ),
       );
     });
+
+    test('triggers Role Reverse in 3-player game when innocent is accused', () {
+      final players = [
+        const GamePlayer(id: 'p1', name: 'P1', role: PlayerRole.normal),
+        const GamePlayer(id: 'p2', name: 'P2', role: PlayerRole.imposter),
+        const GamePlayer(id: 'p3', name: 'P3', role: PlayerRole.normal),
+      ];
+      var state = GameEngine.startGame(
+        players: players,
+        settings: const GameSettings(),
+        secretWord: 'Apple',
+        category: 'Food',
+        customOrder: ['p1', 'p2', 'p3'],
+        customImposterIds: ['p2'],
+      );
+      state = GameEngine.startDiscussion(state);
+
+      // p1 accuses innocent p3
+      state = GameEngine.submitAccusation(state, accuserId: 'p1', targetId: 'p3');
+      state = GameEngine.resolveAccusation(state);
+
+      expect(state.lastAccusationResult?.roleReverse, isTrue);
+      expect(state.currentPhase, isA<DiscussionPhase>());
+      expect(state.currentSpeakerId, 'p1');
+
+      final newImposter = state.players.firstWhere((p) => p.isImposter);
+      expect(newImposter.id, isNot('p2'));
+      expect(state.clues, isEmpty);
+      expect(state.getPlayer('p1')?.usedAccusation, isFalse);
+    });
   });
 
   group('Shared Fixture Replays', () {

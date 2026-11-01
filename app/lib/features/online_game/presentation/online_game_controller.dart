@@ -258,4 +258,16 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
   Future<Map<String, dynamic>> guessWord(String word) {
     return _socket.guessWord(word);
   }
+
+  void clearAccusation() {
+    Map<String, dynamic>? updatedRoom;
+    if (state.roomState != null) {
+      updatedRoom = Map<String, dynamic>.from(state.roomState!);
+      updatedRoom.remove('lastAccusation');
+    }
+    state = state.copyWith(
+      latestAccusation: null,
+      roomState: updatedRoom,
+    );
+  }
 }
