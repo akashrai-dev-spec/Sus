@@ -44,6 +44,8 @@ export default function OnlineGameRoomPage() {
     resolveAccusation,
     submitImposterGuess,
     leaveRoom,
+    kickPlayer,
+    banPlayer,
   } = useGameSocket();
 
   const [clueInput, setClueInput] = useState("");
@@ -92,7 +94,15 @@ export default function OnlineGameRoomPage() {
   if (!isConnected || !roomState) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        {!syncFailed ? (
+        {error ? (
+          <>
+            <div className="h-10 w-10 rounded-full bg-crimson/20 border border-crimson/40 flex items-center justify-center text-crimson-bright font-bold mb-4">
+              !
+            </div>
+            <h2 className="text-xl font-bold text-white mb-1">Room Notice</h2>
+            <p className="text-xs text-mute mb-6 max-w-xs">{error}</p>
+          </>
+        ) : !syncFailed ? (
           <>
             <div className="h-8 w-8 rounded-full border-2 border-crimson border-t-transparent animate-spin mb-4" />
             <h2 className="text-xl font-bold text-white mb-1">Connecting to Room...</h2>
@@ -213,10 +223,30 @@ export default function OnlineGameRoomPage() {
     } catch (_) {}
   };
 
+  const handleKick = async (targetId: string, targetName: string) => {
+    if (!window.confirm(`Kick ${targetName} from the room?`)) return;
+    sounds.playTick();
+    try {
+      await kickPlayer(targetId);
+    } catch (err: any) {
+      alert(err.message || "Failed to kick player.");
+    }
+  };
+
+  const handleBan = async (targetId: string, targetName: string) => {
+    if (!window.confirm(`Ban ${targetName} from re-entering this room?`)) return;
+    sounds.playTick();
+    try {
+      await banPlayer(targetId);
+    } catch (err: any) {
+      alert(err.message || "Failed to ban player.");
+    }
+  };
+
   return (
     <div className="mx-auto max-w-2xl w-full px-4 sm:px-6 py-8 flex-1 flex flex-col">
       {/* Top Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => {
             sounds.playTick();
@@ -245,6 +275,19 @@ export default function OnlineGameRoomPage() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 p-3.5 rounded-xl bg-crimson/20 border border-crimson text-xs font-bold text-crimson-bright flex items-center justify-between animate-in fade-in">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={clearError}
+            className="text-mute hover:text-white px-2 py-0.5 rounded font-black text-sm"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* LOBBY VIEW (WAITING FOR PLAYERS) */}
       {!isPlaying && (
@@ -322,7 +365,7 @@ export default function OnlineGameRoomPage() {
               </div>
               {roomState.players?.map((p: any) => {
                 const isUserHost = p.id === roomState.hostId;
-                const isMe = p.id === profile?.id;
+                const isMe = p.id === (myPlayerId || profile?.id);
                 return (
                   <div
                     key={p.id}
@@ -339,11 +382,33 @@ export default function OnlineGameRoomPage() {
                         {p.name} {isMe ? "(You)" : ""}
                       </span>
                     </div>
-                    {isUserHost && (
-                      <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-crimson/30 border border-crimson text-crimson-bright font-extrabold">
-                        Host
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {isUserHost && (
+                        <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-crimson/30 border border-crimson text-crimson-bright font-extrabold">
+                          Host
+                        </span>
+                      )}
+                      {isHost && !isMe && (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleKick(p.id, p.name)}
+                            title="Kick player from room"
+                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-white/5 hover:bg-crimson/20 border border-line hover:border-crimson text-mute hover:text-crimson-bright transition-all"
+                          >
+                            Kick
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleBan(p.id, p.name)}
+                            title="Ban player from re-entering room"
+                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-crimson/20 hover:bg-crimson border border-crimson text-crimson-bright hover:text-white transition-all"
+                          >
+                            Ban
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}

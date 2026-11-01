@@ -26,6 +26,8 @@ export interface Room {
   gameState?: GameState;
   emptyTimer?: NodeJS.Timeout;
   disconnectTimers: Map<string, NodeJS.Timeout>;
+  bannedTokens: Set<string>;
+  bannedPlayerIds: Set<string>;
 }
 
 export function ensureUniqueName(existingNames: string[], requestedName: string): string {
@@ -161,6 +163,8 @@ export class RoomManager {
       hostId: session.playerId,
       players: [hostPlayer],
       disconnectTimers: new Map(),
+      bannedTokens: new Set(),
+      bannedPlayerIds: new Set(),
     };
 
     this.rooms.set(roomId, room);
@@ -189,6 +193,10 @@ export class RoomManager {
     if (room.emptyTimer) {
       clearTimeout(room.emptyTimer);
       room.emptyTimer = undefined;
+    }
+
+    if (room.bannedPlayerIds.has(session.playerId) || room.bannedTokens.has(session.resumeToken)) {
+      throw new Error("PLAYER_BANNED");
     }
 
     const existingIndex = room.players.findIndex((p) => p.id === session.playerId);
@@ -266,6 +274,62 @@ export class RoomManager {
     }
 
     return { room, leftPlayerId, newHostId };
+  }
+
+  kickPlayer(
+    room: Room,
+    targetPlayerId: string,
+  ): { targetSocketId?: string; leftPlayerId: string } | null {
+    const target = room.players.find((p) => p.id === targetPlayerId);
+    if (!target) return null;
+
+    const targetSocketId = target.socketId;
+    const leftPlayerId = target.id;
+
+    const timer = room.disconnectTimers.get(targetPlayerId);
+    if (timer) {
+      clearTimeout(timer);
+      room.disconnectTimers.delete(targetPlayerId);
+    }
+
+    room.players = room.players.filter((p) => p.id !== targetPlayerId);
+
+    const targetSession = this.sessions.get(target.resumeToken);
+    if (targetSession) {
+      targetSession.roomId = undefined;
+    }
+
+    return { targetSocketId, leftPlayerId };
+  }
+
+  banPlayer(
+    room: Room,
+    targetPlayerId: string,
+  ): { targetSocketId?: string; leftPlayerId: string } | null {
+    const target = room.players.find((p) => p.id === targetPlayerId);
+    if (!target) return null;
+
+    room.bannedPlayerIds.add(target.id);
+    room.bannedTokens.add(target.resumeToken);
+
+    return this.kickPlayer(room, targetPlayerId);
+  }
+
+  checkAndAbortGameIfUnderflow(room: Room): boolean {
+    if (!room.gameState || room.gameState.currentPhase.name === "ended") {
+      return false;
+    }
+
+    if (room.players.length < 3) {
+      room.gameState = undefined;
+      for (const p of room.players) {
+        p.isReady = false;
+        p.usedAccusation = false;
+        p.isAlive = true;
+      }
+      return true;
+    }
+    return false;
   }
 
   handleDisconnect(

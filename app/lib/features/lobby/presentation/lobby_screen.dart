@@ -90,6 +90,104 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     }
   }
 
+  void _showPlayerActionSheet(String targetId, String targetName) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF1D1D1D),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final colors = ctx.colors;
+        return Padding(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Manage $targetName',
+                style: SusTypography.title.copyWith(color: colors.bone),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'As room host, you can kick or ban this player.',
+                style: SusTypography.body.copyWith(color: colors.mute),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  final res = await ref
+                      .read(onlineGameControllerProvider.notifier)
+                      .kickPlayer(targetId);
+                  if (res['ok'] != true && mounted) {
+                    AppToast.show(
+                      context,
+                      res['message'] as String? ?? 'Failed to kick',
+                    );
+                  } else if (mounted) {
+                    AppToast.show(context, '$targetName was kicked.');
+                  }
+                },
+                icon: const Icon(Icons.person_remove_rounded, size: 20),
+                label: const Text('Kick Player'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.panel,
+                  foregroundColor: colors.bone,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: colors.line),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  final res = await ref
+                      .read(onlineGameControllerProvider.notifier)
+                      .banPlayer(targetId);
+                  if (res['ok'] != true && mounted) {
+                    AppToast.show(
+                      context,
+                      res['message'] as String? ?? 'Failed to ban',
+                    );
+                  } else if (mounted) {
+                    AppToast.show(context, '$targetName was banned.');
+                  }
+                },
+                icon: const Icon(Icons.block_rounded, size: 20),
+                label: const Text('Ban Player (Cannot Rejoin)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.crimson,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(44),
+                  side: BorderSide(color: colors.line, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text('Cancel', style: SusTypography.body.copyWith(color: colors.bone)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -98,6 +196,16 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
 
     final room = online.roomState;
     if (room == null) {
+      if (online.notificationMessage != null) {
+        final msg = online.notificationMessage!;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            AppToast.show(context, msg);
+            ref.read(onlineGameControllerProvider.notifier).clearNotification();
+            context.go('/rooms');
+          }
+        });
+      }
       return Scaffold(
         appBar: AppHeader(
           playerName: profile.name,
@@ -108,6 +216,16 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
           child: CircularProgressIndicator(color: colors.crimson),
         ),
       );
+    }
+
+    if (online.notificationMessage != null) {
+      final msg = online.notificationMessage!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          AppToast.show(context, msg);
+          ref.read(onlineGameControllerProvider.notifier).clearNotification();
+        }
+      });
     }
 
     // Auto-navigate if game transitioned to role reveal or discussion
@@ -266,6 +384,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                     colorHex: pColor,
                     isHost: pIsHost,
                     isYou: isYou,
+                    trailingPill: isHost && !isYou ? 'Manage' : null,
+                    trailingPillColor: isHost && !isYou ? colors.crimson.withValues(alpha: 0.2) : null,
+                    onTap: isHost && !isYou ? () => _showPlayerActionSheet(pId, pName) : null,
                   );
                 },
               ),

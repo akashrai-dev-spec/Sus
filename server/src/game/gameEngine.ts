@@ -428,8 +428,18 @@ export class GameEngine {
       p.id === params.playerId ? { ...p, remainingGuesses: p.remainingGuesses - 1 } : p,
     );
 
-    const cleanGuess = params.word.trim().toLowerCase();
-    const cleanSecret = state.secretWord.trim().toLowerCase();
+    const normalizeWord = (w: string) =>
+      w
+        .trim()
+        .toLowerCase()
+        .replace(/[^\w\s]/g, "")
+        .trim()
+        .replace(/^(a|an|the)\s+/i, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const cleanGuess = normalizeWord(params.word);
+    const cleanSecret = normalizeWord(state.secretWord);
 
     if (player.role === "imposter" && cleanGuess === cleanSecret) {
       return {

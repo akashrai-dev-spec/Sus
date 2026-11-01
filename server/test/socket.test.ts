@@ -268,4 +268,116 @@ describe("Socket.IO Server Integration Tests", () => {
       guest.disconnect();
     }
   });
+
+  it("allows host to kick and ban players, and prevents banned player from rejoining", async () => {
+    const host = createClient();
+    const guest = createClient();
+
+    try {
+      await new Promise<any>((r) =>
+        host.emit("session:hello", { name: "Host Boss", color: "#9A0F28" }, r),
+      );
+      const guestHello = await new Promise<any>((r) =>
+        guest.emit("session:hello", { name: "Troll Player", color: "#1D4ED8" }, r),
+      );
+
+      const createRes = await new Promise<any>((r) => {
+        host.emit(
+          "rooms:create",
+          {
+            name: "Kick Test Room",
+            pin: "2222",
+            settings: {
+              maxPlayers: 4,
+              imposters: 1,
+              rounds: 2,
+              guessAttempts: 1,
+              category: "General",
+            },
+          },
+          r,
+        );
+      });
+      const roomId = createRes.data.id;
+      const guestId = guestHello.data.playerId;
+
+      await new Promise<any>((r) => guest.emit("rooms:join", { roomId, pin: "2222" }, r));
+
+      // Host bans guest
+      const banRes = await new Promise<any>((r) => {
+        host.emit("room:banPlayer", { targetId: guestId }, r);
+      });
+      expect(banRes.ok).toBe(true);
+
+      // Guest tries to rejoin
+      const rejoinRes = await new Promise<any>((r) => {
+        guest.emit("rooms:join", { roomId, pin: "2222" }, r);
+      });
+      expect(rejoinRes.ok).toBe(false);
+      expect(rejoinRes.code).toBe("BANNED");
+    } finally {
+      host.disconnect();
+      guest.disconnect();
+    }
+  });
+
+  it("aborts active game and returns to lobby when players fall below 3", async () => {
+    const p1 = createClient();
+    const p2 = createClient();
+    const p3 = createClient();
+
+    try {
+      await new Promise<any>((r) => p1.emit("session:hello", { name: "P1", color: "#9A0F28" }, r));
+      await new Promise<any>((r) => p2.emit("session:hello", { name: "P2", color: "#1D4ED8" }, r));
+      await new Promise<any>((r) => p3.emit("session:hello", { name: "P3", color: "#047857" }, r));
+
+      const createRes = await new Promise<any>((r) => {
+        p1.emit(
+          "rooms:create",
+          {
+            name: "Underflow Room",
+            pin: "3333",
+            settings: {
+              maxPlayers: 3,
+              imposters: 1,
+              rounds: 2,
+              guessAttempts: 1,
+              category: "Objects & Food",
+            },
+          },
+          r,
+        );
+      });
+      const roomId = createRes.data.id;
+
+      await new Promise<any>((r) => p2.emit("rooms:join", { roomId, pin: "3333" }, r));
+      await new Promise<any>((r) => p3.emit("rooms:join", { roomId, pin: "3333" }, r));
+
+      // Host starts game
+      const startRes = await new Promise<any>((r) => p1.emit("game:start", {}, r));
+      expect(startRes.ok).toBe(true);
+
+      const room = roomManager.getRoom(roomId);
+      expect(room?.gameState).toBeDefined();
+
+      // P3 leaves mid-game (dropping player count to 2 < 3)
+      await new Promise<any>((r) => p3.emit("rooms:leave", {}, r));
+
+      // Game state should be aborted back to lobby
+      expect(room?.gameState).toBeUndefined();
+      const pubState = roomManager.getPublicRoomState(room!);
+      expect(pubState.phase).toBe("lobby");
+
+      // New player can now join because room is in lobby!
+      const p4 = createClient();
+      await new Promise<any>((r) => p4.emit("session:hello", { name: "P4", color: "#F59E0B" }, r));
+      const joinRes = await new Promise<any>((r) => p4.emit("rooms:join", { roomId, pin: "3333" }, r));
+      expect(joinRes.ok).toBe(true);
+      p4.disconnect();
+    } finally {
+      p1.disconnect();
+      p2.disconnect();
+      p3.disconnect();
+    }
+  });
 });

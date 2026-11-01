@@ -14,6 +14,9 @@ class SocketService {
   final _clueController = StreamController<Map<String, dynamic>>.broadcast();
   final _accusationController = StreamController<Map<String, dynamic>>.broadcast();
   final _endedController = StreamController<Map<String, dynamic>>.broadcast();
+  final _kickedController = StreamController<Map<String, dynamic>>.broadcast();
+  final _bannedController = StreamController<Map<String, dynamic>>.broadcast();
+  final _abortedController = StreamController<Map<String, dynamic>>.broadcast();
   final _connectionStateController = StreamController<bool>.broadcast();
   final _sessionInfoController = StreamController<Map<String, dynamic>>.broadcast();
 
@@ -23,6 +26,9 @@ class SocketService {
   Stream<Map<String, dynamic>> get onClue => _clueController.stream;
   Stream<Map<String, dynamic>> get onAccusation => _accusationController.stream;
   Stream<Map<String, dynamic>> get onEnded => _endedController.stream;
+  Stream<Map<String, dynamic>> get onKicked => _kickedController.stream;
+  Stream<Map<String, dynamic>> get onBanned => _bannedController.stream;
+  Stream<Map<String, dynamic>> get onAborted => _abortedController.stream;
   Stream<bool> get onConnectionChanged => _connectionStateController.stream;
   Stream<Map<String, dynamic>> get onSessionInfo => _sessionInfoController.stream;
 
@@ -114,6 +120,24 @@ class SocketService {
     _socket!.on('game:ended', (data) {
       if (data is Map) {
         _endedController.add(Map<String, dynamic>.from(data));
+      }
+    });
+
+    _socket!.on('room:kicked', (data) {
+      if (data is Map) {
+        _kickedController.add(Map<String, dynamic>.from(data));
+      }
+    });
+
+    _socket!.on('room:banned', (data) {
+      if (data is Map) {
+        _bannedController.add(Map<String, dynamic>.from(data));
+      }
+    });
+
+    _socket!.on('game:aborted', (data) {
+      if (data is Map) {
+        _abortedController.add(Map<String, dynamic>.from(data));
       }
     });
   }
@@ -218,6 +242,14 @@ class SocketService {
 
   Future<Map<String, dynamic>> updateSettings(Map<String, dynamic> settings) {
     return emitWithAck('room:updateSettings', settings);
+  }
+
+  Future<Map<String, dynamic>> kickPlayer(String targetId) {
+    return emitWithAck('room:kickPlayer', {'targetId': targetId});
+  }
+
+  Future<Map<String, dynamic>> banPlayer(String targetId) {
+    return emitWithAck('room:banPlayer', {'targetId': targetId});
   }
 
   void disconnect() {

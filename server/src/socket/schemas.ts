@@ -43,3 +43,11 @@ export const profileUpdateSchema = z.object({
   name: z.string().trim().min(1).max(25),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
 });
+
+export const roomKickPlayerSchema = z.object({
+  targetId: z.string().min(1),
+});
+
+export const roomBanPlayerSchema = z.object({
+  targetId: z.string().min(1),
+});
