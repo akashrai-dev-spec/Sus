@@ -333,13 +333,22 @@ export function useGameSocket() {
     });
   }, []);
 
-  const leaveRoom = useCallback(() => {
+  const leaveRoom = useCallback(async (): Promise<void> => {
     const s = socketRef.current || getGameSocket();
-    s.emit("rooms:leave", {}, () => {
+    const currentRoomId = sharedRoomState?.id;
+    return new Promise((resolve) => {
       sharedRoomState = null;
       sharedPrivateRole = null;
       sharedAccusationResult = null;
       notifyStateChange();
+
+      s.emit("rooms:leave", { roomId: currentRoomId }, () => {
+        resolve();
+      });
+
+      setTimeout(() => {
+        resolve();
+      }, 500);
     });
   }, []);
 

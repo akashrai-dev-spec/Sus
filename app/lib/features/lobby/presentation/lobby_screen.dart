@@ -216,14 +216,21 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
           }
         });
       }
-      return Scaffold(
-        appBar: AppHeader(
-          playerName: profile.name,
-          playerColorHex: profile.color,
-          onBack: _confirmLeaveLobby,
-        ),
-        body: Center(
-          child: CircularProgressIndicator(color: colors.crimson),
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          _confirmLeaveLobby();
+        },
+        child: Scaffold(
+          appBar: AppHeader(
+            playerName: profile.name,
+            playerColorHex: profile.color,
+            onBack: _confirmLeaveLobby,
+          ),
+          body: Center(
+            child: CircularProgressIndicator(color: colors.crimson),
+          ),
         ),
       );
     }
@@ -256,7 +263,8 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     final isHost = online.isHost ||
         (room['hostId'] != null &&
             players.any((p) => p['id'] == room['hostId'] && p['name'] == profile.name));
-    final playerCount = players.length;
+    final connectedPlayers = players.where((p) => p['isConnected'] != false).toList();
+    final connectedCount = connectedPlayers.length;
     final maxPlayers = room['max'] as int? ?? 6;
 
     final impostersCount = (settings['imposters'] as int?) ?? 1;
@@ -264,172 +272,192 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     final guessCount = (settings['guessAttempts'] as int?) ?? 1;
     final categoryName = settings['category'] ?? 'Random';
 
-    return Scaffold(
-      appBar: AppHeader(
-        playerName: profile.name,
-        playerColorHex: profile.color,
-        onBack: _confirmLeaveLobby,
-      ),
-      body: ContentColumn(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              roomName,
-              style: SusTypography.title.copyWith(color: colors.bone),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '$playerCount/$maxPlayers players',
-              style: SusTypography.body.copyWith(color: colors.mute),
-            ),
-            const SizedBox(height: 10),
-
-            // Room Code & PIN Share Card
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: colors.panel,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: colors.line),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _confirmLeaveLobby();
+      },
+      child: Scaffold(
+        appBar: AppHeader(
+          playerName: profile.name,
+          playerColorHex: profile.color,
+          onBack: _confirmLeaveLobby,
+        ),
+        body: ContentColumn(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                roomName,
+                style: SusTypography.title.copyWith(color: colors.bone),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'ROOM CODE',
-                          style: SusTypography.caption.copyWith(
-                            color: colors.mute,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.1,
+              const SizedBox(height: 4),
+              Text(
+                '$connectedCount/$maxPlayers players',
+                style: SusTypography.body.copyWith(color: colors.mute),
+              ),
+              const SizedBox(height: 10),
+
+              // Room Code & PIN Share Card
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: colors.panel,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: colors.line),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'ROOM CODE',
+                            style: SusTypography.caption.copyWith(
+                              color: colors.mute,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.1,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          widget.roomId,
-                          style: SusTypography.body.copyWith(
-                            color: colors.bone,
-                            fontWeight: FontWeight.w700,
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.roomId,
+                            style: SusTypography.body.copyWith(
+                              color: colors.bone,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  Container(
-                    height: 28,
-                    width: 1,
-                    color: colors.line,
-                    margin: const EdgeInsets.symmetric(horizontal: 10),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'ROOM PIN',
-                          style: SusTypography.caption.copyWith(
-                            color: colors.mute,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.1,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          (room['pin'] as String?) ?? '••••',
-                          style: SusTypography.body.copyWith(
-                            color: colors.crimson,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                      ],
+                    Container(
+                      height: 28,
+                      width: 1,
+                      color: colors.line,
+                      margin: const EdgeInsets.symmetric(horizontal: 10),
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.copy_rounded, size: 20, color: colors.mute),
-                    tooltip: 'Copy Room Code & PIN',
-                    onPressed: () {
-                      final pin = (room['pin'] as String?) ?? '';
-                      Clipboard.setData(ClipboardData(
-                        text: 'Join my Sus game!\nRoom Code: ${widget.roomId}\nPIN: $pin',
-                      ));
-                      AppToast.show(context, 'Room code & PIN copied!');
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Chips
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildChip(colors, '$impostersCount imposter${impostersCount > 1 ? 's' : ''}'),
-                _buildChip(colors, '$roundsCount round${roundsCount > 1 ? 's' : ''}'),
-                _buildChip(colors, '$guessCount guess${guessCount > 1 ? 'es' : ''}'),
-                _buildChip(colors, categoryName.toString()),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Players list
-            Expanded(
-              child: ListView.builder(
-                itemCount: players.length,
-                itemBuilder: (context, i) {
-                  final p = players[i];
-                  final pId = p['id'] as String;
-                  final pName = p['name'] as String;
-                  final pColor = p['color'] as String;
-                  final pIsHost = p['isHost'] as bool? ?? false;
-                  final isYou = pId == online.playerId || pName == profile.name;
-
-                  return PlayerTile(
-                    name: pName,
-                    colorHex: pColor,
-                    isHost: pIsHost,
-                    isYou: isYou,
-                    trailingPill: isHost && !isYou ? 'Manage' : null,
-                    trailingPillColor: isHost && !isYou ? colors.crimson.withValues(alpha: 0.2) : null,
-                    onTap: isHost && !isYou ? () => _showPlayerActionSheet(pId, pName) : null,
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            if (isHost) ...[
-              SwipeToConfirm(
-                label: playerCount < 3 ? 'Need 3 players to start' : 'Start game',
-                enabled: playerCount >= 3,
-                onConfirm: () async {
-                  final res = await ref.read(onlineGameControllerProvider.notifier).startGame();
-                  if (res['ok'] != true && mounted) {
-                    AppToast.show(
-                      context,
-                      (res['message'] as String?) ?? 'Cannot start game',
-                    );
-                  }
-                },
-              ),
-            ] else ...[
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(
-                    'Waiting for the host to start…',
-                    style: SusTypography.body.copyWith(color: colors.mute),
-                  ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'ROOM PIN',
+                            style: SusTypography.caption.copyWith(
+                              color: colors.mute,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            (room['pin'] as String?) ?? '••••',
+                            style: SusTypography.body.copyWith(
+                              color: colors.crimson,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.copy_rounded, size: 20, color: colors.mute),
+                      tooltip: 'Copy Room Code & PIN',
+                      onPressed: () {
+                        final pin = (room['pin'] as String?) ?? '';
+                        Clipboard.setData(ClipboardData(
+                          text: 'Join my Sus game!\nRoom Code: ${widget.roomId}\nPIN: $pin',
+                        ));
+                        AppToast.show(context, 'Room code & PIN copied!');
+                      },
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(height: 10),
+
+              // Chips
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildChip(colors, '$impostersCount imposter${impostersCount > 1 ? 's' : ''}'),
+                  _buildChip(colors, '$roundsCount round${roundsCount > 1 ? 's' : ''}'),
+                  _buildChip(colors, '$guessCount guess${guessCount > 1 ? 'es' : ''}'),
+                  _buildChip(colors, categoryName.toString()),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Players list
+              Expanded(
+                child: ListView.builder(
+                  itemCount: players.length,
+                  itemBuilder: (context, i) {
+                    final p = players[i];
+                    final pId = p['id'] as String;
+                    final pName = p['name'] as String;
+                    final pColor = p['color'] as String;
+                    final pIsHost = p['isHost'] as bool? ?? false;
+                    final isYou = pId == online.playerId || pName == profile.name;
+                    final isConnected = p['isConnected'] != false;
+
+                    String? trailingPill;
+                    Color? trailingPillColor;
+                    if (!isConnected) {
+                      trailingPill = 'Offline';
+                      trailingPillColor = colors.mute.withValues(alpha: 0.2);
+                    } else if (isHost && !isYou) {
+                      trailingPill = 'Manage';
+                      trailingPillColor = colors.crimson.withValues(alpha: 0.2);
+                    }
+
+                    return PlayerTile(
+                      name: pName,
+                      colorHex: pColor,
+                      isHost: pIsHost,
+                      isYou: isYou,
+                      trailingPill: trailingPill,
+                      trailingPillColor: trailingPillColor,
+                      onTap: (isHost && !isYou && isConnected)
+                          ? () => _showPlayerActionSheet(pId, pName)
+                          : null,
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              if (isHost) ...[
+                SwipeToConfirm(
+                  label: connectedCount < 3 ? 'Need 3 players to start' : 'Start game',
+                  enabled: connectedCount >= 3,
+                  onConfirm: () async {
+                    final res = await ref.read(onlineGameControllerProvider.notifier).startGame();
+                    if (res['ok'] != true && mounted) {
+                      AppToast.show(
+                        context,
+                        (res['message'] as String?) ?? 'Cannot start game',
+                      );
+                    }
+                  },
+                ),
+              ] else ...[
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Text(
+                      'Waiting for the host to start…',
+                      style: SusTypography.body.copyWith(color: colors.mute),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
             ],
-            const SizedBox(height: 16),
-          ],
+          ),
         ),
       ),
     );

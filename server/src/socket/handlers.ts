@@ -250,13 +250,23 @@ export function registerSocketHandlers(io: Namespace, roomManager: RoomManager):
     });
 
     // 5. rooms:leave
-    socket.on("rooms:leave", (_, ack: AckCallback) => {
-      const session = roomManager.getSessionBySocket(socket.id);
-      if (!session || !session.roomId) {
+    socket.on("rooms:leave", (rawPayload: any, ack: AckCallback) => {
+      let session = roomManager.getSessionBySocket(socket.id);
+      const targetRoomId = session?.roomId || (typeof rawPayload === "object" ? rawPayload?.roomId : undefined);
+
+      if (!session && targetRoomId) {
+        const r = roomManager.getRoom(targetRoomId);
+        const p = r?.players.find((pl) => pl.socketId === socket.id);
+        if (p) {
+          session = roomManager.getSessionByPlayerId(p.id);
+        }
+      }
+
+      if (!session || !targetRoomId) {
         return safeAck(ack, true);
       }
 
-      const roomId = session.roomId;
+      const roomId = targetRoomId;
       const { room, leftPlayerId } = roomManager.leaveRoom(socket.id);
       socket.leave(roomId);
 

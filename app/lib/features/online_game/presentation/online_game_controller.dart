@@ -67,6 +67,21 @@ class OnlineState {
       notificationMessage: notificationMessage,
     );
   }
+
+  OnlineState clearRoom({String? notification}) {
+    return OnlineState(
+      isConnected: isConnected,
+      playerId: playerId,
+      roomState: null,
+      myRole: null,
+      mySecretWord: null,
+      myCategory: null,
+      liveClues: const [],
+      latestAccusation: null,
+      gameEndedData: null,
+      notificationMessage: notification,
+    );
+  }
 }
 
 final onlineGameControllerProvider =
@@ -183,12 +198,8 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
     _subscriptions.add(
       _socket.onKicked.listen((data) {
         if (!mounted) return;
-        state = state.copyWith(
-          roomState: null,
-          myRole: null,
-          mySecretWord: null,
-          liveClues: [],
-          notificationMessage: data['message'] as String? ?? 'You were kicked from the room by the host.',
+        state = state.clearRoom(
+          notification: data['message'] as String? ?? 'You were kicked from the room by the host.',
         );
       }),
     );
@@ -196,12 +207,8 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
     _subscriptions.add(
       _socket.onBanned.listen((data) {
         if (!mounted) return;
-        state = state.copyWith(
-          roomState: null,
-          myRole: null,
-          mySecretWord: null,
-          liveClues: [],
-          notificationMessage: data['message'] as String? ?? 'You were banned from this room by the host.',
+        state = state.clearRoom(
+          notification: data['message'] as String? ?? 'You were banned from this room by the host.',
         );
       }),
     );
@@ -272,16 +279,9 @@ class OnlineGameNotifier extends StateNotifier<OnlineState> {
   }
 
   Future<void> leaveRoom() async {
-    await _socket.leaveRoom();
-    state = state.copyWith(
-      roomState: null,
-      myRole: null,
-      mySecretWord: null,
-      myCategory: null,
-      liveClues: [],
-      latestAccusation: null,
-      gameEndedData: null,
-    );
+    final currentRoomId = state.roomState?['id'] as String?;
+    await _socket.leaveRoom(currentRoomId);
+    state = state.clearRoom();
   }
 
   Future<Map<String, dynamic>> syncRoom([String? roomId]) async {

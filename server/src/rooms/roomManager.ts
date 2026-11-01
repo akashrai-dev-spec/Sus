@@ -286,44 +286,76 @@ export class RoomManager {
       throw new Error("PLAYER_BANNED");
     }
 
-    const existingIndex = room.players.findIndex((p) => p.id === session.playerId);
+    const existingIndex = room.players.findIndex(
+      (p) => p.id === session.playerId || (Boolean(session.resumeToken) && p.resumeToken === session.resumeToken),
+    );
     if (existingIndex !== -1) {
       // Reconnection
       const p = room.players[existingIndex];
       p.socketId = session.socketId;
       p.isConnected = true;
-      const timer = room.disconnectTimers.get(session.playerId);
+      p.name = session.name || p.name;
+      session.playerId = p.id;
+      const timer = room.disconnectTimers.get(p.id);
       if (timer) {
         clearTimeout(timer);
-        room.disconnectTimers.delete(session.playerId);
+        room.disconnectTimers.delete(p.id);
       }
     } else {
-      if (room.players.length >= room.settings.maxPlayers) {
-        throw new Error("ROOM_FULL");
-      }
-      if (room.gameState && room.gameState.currentPhase.name !== "lobby") {
-        throw new Error("GAME_ALREADY_IN_PROGRESS");
-      }
+      // Check if there is an inactive/disconnected player with the exact same name
+      const disconnectedSameName = room.players.find(
+        (p) => p.isConnected === false && p.name.trim().toLowerCase() === session.name.trim().toLowerCase(),
+      );
+      if (disconnectedSameName) {
+        disconnectedSameName.socketId = session.socketId;
+        disconnectedSameName.isConnected = true;
+        disconnectedSameName.resumeToken = session.resumeToken;
+        session.playerId = disconnectedSameName.id;
+        const timer = room.disconnectTimers.get(disconnectedSameName.id);
+        if (timer) {
+          clearTimeout(timer);
+          room.disconnectTimers.delete(disconnectedSameName.id);
+        }
+      } else {
+        // If room is full, prune any disconnected player in lobby so active players can enter
+        if (room.players.length >= room.settings.maxPlayers) {
+          const disconnectedIndex = room.players.findIndex((p) => p.isConnected === false);
+          if (disconnectedIndex !== -1 && (!room.gameState || room.gameState.currentPhase.name === "lobby")) {
+            const stale = room.players.splice(disconnectedIndex, 1)[0];
+            const t = room.disconnectTimers.get(stale.id);
+            if (t) {
+              clearTimeout(t);
+              room.disconnectTimers.delete(stale.id);
+            }
+          } else {
+            throw new Error("ROOM_FULL");
+          }
+        }
 
-      // Ensure every player in the room has a distinct, unique name
-      const existingNames = room.players.map((p) => p.name);
-      const uniqueName = ensureUniqueName(existingNames, session.name);
-      session.name = uniqueName;
+        if (room.gameState && room.gameState.currentPhase.name !== "lobby") {
+          throw new Error("GAME_ALREADY_IN_PROGRESS");
+        }
 
-      const newPlayer: GamePlayer & { resumeToken: string; socketId: string } = {
-        id: session.playerId,
-        name: uniqueName,
-        color: session.color,
-        isAlive: true,
-        isHost: room.players.length === 0,
-        usedAccusation: false,
-        remainingGuesses: room.settings.guessAttempts,
-        isReady: false,
-        isConnected: true,
-        resumeToken: session.resumeToken,
-        socketId: session.socketId,
-      };
-      room.players.push(newPlayer);
+        // Ensure every player in the room has a distinct, unique name
+        const existingNames = room.players.map((p) => p.name);
+        const uniqueName = ensureUniqueName(existingNames, session.name);
+        session.name = uniqueName;
+
+        const newPlayer: GamePlayer & { resumeToken: string; socketId: string } = {
+          id: session.playerId,
+          name: uniqueName,
+          color: session.color,
+          isAlive: true,
+          isHost: room.players.length === 0,
+          usedAccusation: false,
+          remainingGuesses: room.settings.guessAttempts,
+          isReady: false,
+          isConnected: true,
+          resumeToken: session.resumeToken,
+          socketId: session.socketId,
+        };
+        room.players.push(newPlayer);
+      }
     }
 
     session.roomId = room.id;
@@ -520,10 +552,15 @@ export class RoomManager {
       room.disconnectTimers.delete(player.id);
     }
 
+    // In the lobby, remove disconnected players quickly (1s debounce) so room player counts stay accurate.
+    // Mid-game, allow the full grace period so brief cellular/wifi handoffs do not kill the game.
+    const isLobby = !room.gameState || room.gameState.currentPhase.name === "lobby";
+    const graceMs = isLobby ? 1000 : config.disconnectGracePeriodMs;
+
     // Start grace timer
     const timer = setTimeout(() => {
       onGraceExpired(room, player.id);
-    }, config.disconnectGracePeriodMs);
+    }, graceMs);
 
     room.disconnectTimers.set(player.id, timer);
     return { room, playerId: player.id };
