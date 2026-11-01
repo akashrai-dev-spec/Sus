@@ -343,6 +343,24 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
                 style: SusTypography.body.copyWith(color: colors.mute),
               ),
               const SizedBox(height: 18),
+              if (res.roleReverse) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: colors.crimson.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(color: colors.crimson),
+                  ),
+                  child: Text(
+                    'ROLE REVERSE!',
+                    style: SusTypography.caption.copyWith(
+                      color: colors.crimsonBright,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               Text(
                 isCaught ? 'Imposter!' : 'Normal player.',
                 style: SusTypography.display.copyWith(
@@ -352,11 +370,13 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen>
               ),
               const SizedBox(height: 10),
               Text(
-                isCaught
-                    ? '${target.name} was caught and is eliminated.'
-                    : res.isFinalVote
-                        ? 'The final accusation named the wrong player.'
-                        : '${accuser?.name} has used up their accusation.',
+                res.roleReverse
+                    ? 'Roles reversed! A new imposter has been chosen. Discussion restarts from ${accuser?.name ?? 'the accuser'}.'
+                    : isCaught
+                        ? '${target.name} was caught and is eliminated.'
+                        : res.isFinalVote
+                            ? 'The final accusation named the wrong player.'
+                            : '${accuser?.name} has used up their accusation.',
                 style: SusTypography.body.copyWith(color: colors.mute),
               ),
               const SizedBox(height: 24),

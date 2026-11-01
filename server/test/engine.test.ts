@@ -196,6 +196,84 @@ describe("GameEngine Core Rules", () => {
       GameEngine.submitClue(state, { playerId: "p1", text: "It is an Apple!" }),
     ).toThrowError("You cannot say the secret word.");
   });
+
+  it("triggers Role Reverse for 3-player game when innocent is accused", () => {
+    const players: GamePlayer[] = [
+      {
+        id: "p1",
+        name: "P1",
+        color: "#9A0F28",
+        role: "normal",
+        isAlive: true,
+        isHost: true,
+        usedAccusation: false,
+        remainingGuesses: 1,
+        isReady: false,
+      },
+      {
+        id: "p2",
+        name: "P2",
+        color: "#9A0F28",
+        role: "imposter",
+        isAlive: true,
+        isHost: false,
+        usedAccusation: false,
+        remainingGuesses: 1,
+        isReady: false,
+      },
+      {
+        id: "p3",
+        name: "P3",
+        color: "#9A0F28",
+        role: "normal",
+        isAlive: true,
+        isHost: false,
+        usedAccusation: false,
+        remainingGuesses: 1,
+        isReady: false,
+      },
+    ];
+
+    let state = GameEngine.startGame({
+      players,
+      settings: {
+        maxPlayers: 3,
+        imposters: 1,
+        rounds: 2,
+        guessAttempts: 1,
+        category: "Objects & Food",
+      },
+      secretWord: "Apple",
+      category: "Objects & Food",
+      customOrder: ["p1", "p2", "p3"],
+      customImposterIds: ["p2"],
+    });
+
+    for (const p of players) {
+      state = GameEngine.markPlayerReady(state, p.id);
+    }
+
+    // p1 accuses innocent p3
+    state = GameEngine.submitAccusation(state, { accuserId: "p1", targetId: "p3" });
+    state = GameEngine.resolveAccusation(state);
+
+    expect(state.lastAccusationResult?.roleReverse).toBe(true);
+    expect(state.lastAccusationResult?.outcome).toBe("innocentFail");
+    expect(state.currentPhase.name).toBe("discussion");
+
+    // The discussion restarts from the accuser (p1)
+    expect(GameEngine.getCurrentSpeakerId(state)).toBe("p1");
+
+    // A new imposter is chosen who was not p2 (either p1 or p3)
+    const newImposter = state.players.find((p) => p.role === "imposter");
+    expect(newImposter).toBeDefined();
+    expect(newImposter?.id).not.toBe("p2");
+
+    // Clues are reset and accuser can act again
+    expect(state.clues.length).toBe(0);
+    const p1 = state.players.find((p) => p.id === "p1")!;
+    expect(p1.usedAccusation).toBe(false);
+  });
 });
 
 describe("Shared Fixture Replays", () => {

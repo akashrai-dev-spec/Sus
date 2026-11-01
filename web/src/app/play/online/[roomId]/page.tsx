@@ -61,6 +61,9 @@ export default function OnlineGameRoomPage() {
   const [guessModalOpen, setGuessModalOpen] = useState(false);
   const [guessWord, setGuessWord] = useState("");
 
+  // Dismissed accusation state
+  const [dismissedAccusationKey, setDismissedAccusationKey] = useState<string | null>(null);
+
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   // Automatic room state synchronization
@@ -157,6 +160,15 @@ export default function OnlineGameRoomPage() {
   const totalRounds = settings.rounds || 2;
   const isFinalVote = Boolean(roomState.isFinalVote || phaseName === "finalVote");
   const lastAccusation = accusationResult || roomState.lastAccusation;
+  const accusationKey = lastAccusation
+    ? `${lastAccusation.accuserId || ""}-${lastAccusation.targetId || lastAccusation.accusedId || ""}-${lastAccusation.revealedRole || ""}-${lastAccusation.outcome || ""}-${lastAccusation.roleReverse ? "rev" : "norm"}`
+    : null;
+  const showAccusationModal = Boolean(
+    lastAccusation &&
+    !lastAccusation.isGameOver &&
+    accusationKey &&
+    dismissedAccusationKey !== accusationKey
+  );
 
   const handleStartGame = async () => {
     sounds.playTick();
@@ -574,24 +586,30 @@ export default function OnlineGameRoomPage() {
               {/* Player Turn Controls */}
               <div className="space-y-3 pt-2">
                 {isMyTurn && phaseName === "discussion" ? (
-                  <form onSubmit={handleSendClue} className="flex gap-2">
-                    <input
-                      type="text"
-                      maxLength={60}
-                      autoFocus
-                      value={clueInput}
-                      onChange={(e) => setClueInput(e.target.value)}
-                      placeholder="Type your one clue (never say the word)..."
-                      className="flex-1 px-4 py-3 rounded-xl bg-panel border-1.5 border-crimson text-white text-sm font-medium focus:outline-none"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!clueInput.trim() || submittingClue}
-                      className="px-5 py-3 rounded-xl bg-crimson hover:bg-crimson-bright text-white font-bold text-sm shadow-md button-press disabled:opacity-40"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </form>
+                  <div className="space-y-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-crimson-bright flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-crimson animate-pulse" />
+                      Your Turn: Give a Clue or Accuse
+                    </span>
+                    <form onSubmit={handleSendClue} className="flex gap-2">
+                      <input
+                        type="text"
+                        maxLength={60}
+                        autoFocus
+                        value={clueInput}
+                        onChange={(e) => setClueInput(e.target.value)}
+                        placeholder="Type your one clue (never say the word)..."
+                        className="flex-1 px-4 py-3 rounded-xl bg-panel border-1.5 border-crimson text-white text-sm font-medium focus:outline-none"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!clueInput.trim() || submittingClue}
+                        className="px-5 py-3 rounded-xl bg-crimson hover:bg-crimson-bright text-white font-bold text-sm shadow-md button-press disabled:opacity-40"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </form>
+                  </div>
                 ) : (
                   <div className="p-3 rounded-xl bg-panel/60 border border-line text-center text-xs text-mute">
                     {phaseName === "discussion"
@@ -609,9 +627,13 @@ export default function OnlineGameRoomPage() {
                       setAccusedId("");
                       setAccuseModalOpen(true);
                     }}
-                    className="py-3.5 rounded-xl bg-panel border-2 border-line hover:border-crimson text-sm font-bold text-bone hover:text-white transition-all button-press"
+                    className={`py-3.5 rounded-xl border-2 transition-all button-press font-bold text-sm ${
+                      isMyTurn
+                        ? "bg-crimson/20 border-crimson text-white hover:bg-crimson/30"
+                        : "bg-panel border-line hover:border-crimson text-bone hover:text-white"
+                    }`}
                   >
-                    Accuse Player
+                    {isMyTurn ? "Accuse Player Instead" : "Accuse Player"}
                   </button>
                   {privateRole?.role === "imposter" && (
                     <button
@@ -768,9 +790,14 @@ export default function OnlineGameRoomPage() {
       )}
 
       {/* ACCUSATION RESULT POPUP */}
-      {lastAccusation && !lastAccusation.isGameOver && (
+      {showAccusationModal && lastAccusation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl bg-panel-dark p-6 border-2 border-crimson shadow-2xl text-center animate-in fade-in zoom-in-95 duration-150">
+            {lastAccusation.roleReverse && (
+              <span className="inline-block px-3 py-1 rounded-full bg-crimson/30 border border-crimson text-crimson-bright text-xs font-black uppercase tracking-wider mb-3 animate-pulse">
+                Role Reverse!
+              </span>
+            )}
             <span className="text-xs uppercase font-extrabold tracking-widest text-mute block mb-2">
               Role Revealed
             </span>
@@ -788,9 +815,17 @@ export default function OnlineGameRoomPage() {
                 ? "IMPOSTER! (Eliminated)"
                 : "NORMAL PLAYER (Innocent!)"}
             </div>
+            {lastAccusation.roleReverse && (
+              <p className="text-xs text-mute mb-5 leading-relaxed">
+                Roles have reversed and a new imposter has been chosen. Discussion restarts from the accuser.
+              </p>
+            )}
             <button
               onClick={() => {
                 sounds.playTick();
+                if (accusationKey) {
+                  setDismissedAccusationKey(accusationKey);
+                }
                 clearAccusationResult();
               }}
               className="w-full py-3.5 rounded-xl bg-crimson hover:bg-crimson-bright text-white font-bold button-press"

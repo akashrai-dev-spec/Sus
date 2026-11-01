@@ -27,6 +27,7 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
   final TextEditingController _clueController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _hasSeenRole = false;
+  String? _lastShownAccusationKey;
 
   @override
   void dispose() {
@@ -45,6 +46,146 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
         );
       }
     });
+  }
+
+  void _showAccusationOutcomeDialog(
+    SusColors colors,
+    Map<String, dynamic> res,
+    List<Map<String, dynamic>> players,
+  ) {
+    final targetId = res['targetId'] ?? res['accusedId'];
+    final accuserId = res['accuserId'];
+    final target = players.firstWhere(
+      (p) => p['id'] == targetId,
+      orElse: () => {'name': 'Player'},
+    );
+    final accuser = accuserId != null
+        ? players.firstWhere(
+            (p) => p['id'] == accuserId,
+            orElse: () => {'name': 'Player'},
+          )
+        : null;
+
+    final isHit = res['outcome'] == 'caught' || res['revealedRole'] == 'imposter';
+    final roleReverse = res['roleReverse'] == true;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: const Color(0xFF1D1D1D),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(
+              color: roleReverse ? colors.crimson : colors.line,
+              width: 2,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (roleReverse) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: colors.crimson.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(color: colors.crimson),
+                    ),
+                    child: Text(
+                      'ROLE REVERSE!',
+                      style: SusTypography.caption.copyWith(
+                        color: colors.crimsonBright,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                  'Role Revealed',
+                  style: SusTypography.caption.copyWith(
+                    color: colors.mute,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  target['name'] as String? ?? 'Player',
+                  style: SusTypography.title.copyWith(
+                    color: colors.bone,
+                    fontSize: 22,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: isHit
+                        ? colors.crimson.withValues(alpha: 0.2)
+                        : Colors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isHit ? colors.crimson : colors.line,
+                    ),
+                  ),
+                  child: Text(
+                    isHit ? 'IMPOSTER! (Eliminated)' : 'NORMAL PLAYER (Innocent!)',
+                    style: SusTypography.title.copyWith(
+                      color: isHit ? colors.crimsonBright : colors.bone,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  roleReverse
+                      ? 'Roles have reversed and a new imposter has been chosen. Discussion restarts from the accuser.'
+                      : isHit
+                          ? '${target['name']} was caught and eliminated.'
+                          : '${accuser?['name'] ?? 'The accuser'} accused an innocent player.',
+                  style: SusTypography.body.copyWith(
+                    color: colors.mute,
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    ref.read(onlineGameControllerProvider.notifier).clearAccusation();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.crimson,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Continue',
+                    style: SusTypography.body.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showPeekDialog(SusColors colors, OnlineState online) {
@@ -285,6 +426,24 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
       (p) => (myPlayerId != null && p['id'] == myPlayerId) || p['name'] == profile.name,
       orElse: () => <String, dynamic>{},
     );
+
+    // Accusation popup
+    final latestAccusation = online.latestAccusation ??
+        (room['lastAccusation'] is Map
+            ? Map<String, dynamic>.from(room['lastAccusation'] as Map)
+            : null);
+    if (latestAccusation != null) {
+      final accKey =
+          '${latestAccusation['accuserId']}-${latestAccusation['targetId'] ?? latestAccusation['accusedId']}-${latestAccusation['outcome']}-${latestAccusation['roleReverse']}';
+      if (_lastShownAccusationKey != accKey) {
+        _lastShownAccusationKey = accKey;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _showAccusationOutcomeDialog(colors, latestAccusation, players);
+          }
+        });
+      }
+    }
 
     // Role reveal view
     if (phase == 'roleReveal') {
@@ -569,10 +728,10 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
                   : !isAlive
                       ? 'You were caught. Watching ${speakerPlayer['name']}…'
                       : isMyTurn
-                          ? 'Your turn. Give a clue.'
+                          ? 'Your turn! Give a clue OR accuse a player.'
                           : '${speakerPlayer['name']} is speaking…',
               style: SusTypography.body.copyWith(
-                color: colors.bone,
+                color: isMyTurn ? colors.crimsonBright : colors.bone,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -609,11 +768,27 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
                 ],
               ),
               const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: (isFinalVote || !usedAccusation) ? () => _showAccuseSheet(aliveTargets) : null,
+                icon: const Icon(Icons.gavel_rounded, size: 18),
+                label: const Text('Or Accuse Player on Your Turn'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(44),
+                  foregroundColor: colors.crimsonBright,
+                  side: BorderSide(color: colors.crimson.withValues(alpha: 0.6), width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
             ],
 
             // Action buttons: Accuse & Guess Word
             SwipeToConfirm(
-              label: usedAccusation && !isFinalVote ? 'Accusation used' : 'Accuse',
+              label: usedAccusation && !isFinalVote
+                  ? 'Accusation used'
+                  : (isMyTurn ? 'Swipe to Accuse Player' : 'Accuse'),
               enabled: isAlive && (isFinalVote || !usedAccusation),
               onConfirm: () => _showAccuseSheet(aliveTargets),
             ),
