@@ -30,6 +30,16 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
   String? _lastShownAccusationKey;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(onlineGameControllerProvider.notifier).syncRoom(widget.roomId);
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _clueController.dispose();
     _scrollController.dispose();
@@ -678,12 +688,19 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: Text(
-                  'Hold: my role',
-                  style: SusTypography.caption.copyWith(
-                    color: colors.mute,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.visibility_rounded, size: 14, color: colors.mute),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Peek role',
+                      style: SusTypography.caption.copyWith(
+                        color: colors.mute,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

@@ -76,6 +76,15 @@ function initGlobalSocketListeners(s: Socket) {
           if (effectiveName !== savedName) {
             localStorage.setItem("sus_name", effectiveName);
           }
+          const targetRoomId = res.data.roomId || sharedRoomState?.id;
+          if (targetRoomId) {
+            s.emit("room:sync", { roomId: targetRoomId }, (syncRes: any) => {
+              if (syncRes?.ok && syncRes.data) {
+                sharedRoomState = syncRes.data;
+                notifyStateChange();
+              }
+            });
+          }
           notifyStateChange();
         }
       }

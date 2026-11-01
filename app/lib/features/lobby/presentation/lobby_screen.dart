@@ -22,6 +22,16 @@ class LobbyScreen extends ConsumerStatefulWidget {
 }
 
 class _LobbyScreenState extends ConsumerState<LobbyScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(onlineGameControllerProvider.notifier).syncRoom(widget.roomId);
+      }
+    });
+  }
+
   Future<void> _confirmLeaveLobby() async {
     final leave = await showModalBottomSheet<bool>(
       context: context,

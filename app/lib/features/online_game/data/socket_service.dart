@@ -220,6 +220,10 @@ class SocketService {
     return emitWithAck('rooms:leave', {});
   }
 
+  Future<Map<String, dynamic>> syncRoom([String? roomId]) {
+    return emitWithAck('room:sync', {'roomId': roomId});
+  }
+
   Future<Map<String, dynamic>> startGame() {
     return emitWithAck('game:start', {});
   }

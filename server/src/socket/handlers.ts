@@ -69,8 +69,11 @@ export function registerSocketHandlers(io: Namespace, roomManager: RoomManager):
         const room = roomManager.getRoom(session.roomId);
         if (room) {
           socket.join(room.id);
+          roomManager.reconnectPlayer(room, session.playerId, socket.id);
           sendPrivateRole(socket, room, session.playerId);
-          io.to(room.id).emit("room:state", roomManager.getPublicRoomState(room));
+          const state = roomManager.getPublicRoomState(room);
+          io.to(room.id).emit("room:state", state);
+          socket.emit("room:state", state);
         }
       }
 
@@ -208,12 +211,17 @@ export function registerSocketHandlers(io: Namespace, roomManager: RoomManager):
       }
 
       socket.join(room.id);
-      if (session && !session.roomId) {
-        session.roomId = room.id;
+      if (session) {
+        if (!session.roomId) {
+          session.roomId = room.id;
+        }
+        session.socketId = socket.id;
+        roomManager.reconnectPlayer(room, session.playerId, socket.id);
       }
 
       const state = roomManager.getPublicRoomState(room);
       safeAck(ack, true, state);
+      io.to(room.id).emit("room:state", state);
 
       if (session && room.gameState) {
         sendPrivateRole(socket, room, session.playerId);
@@ -607,8 +615,26 @@ export function registerSocketHandlers(io: Namespace, roomManager: RoomManager):
     // Disconnect
     socket.on("disconnect", () => {
       const { room, playerId } = roomManager.handleDisconnect(socket.id, (expiredRoom, pId) => {
-        logger.info({ roomId: expiredRoom.id, playerId: pId }, "Disconnect grace expired");
+        // Guard against removing an active or reconnected player
+        const player = expiredRoom.players.find((p) => p.id === pId);
+        if (!player || player.isConnected) {
+          logger.info({ roomId: expiredRoom.id, playerId: pId }, "Disconnect grace expired, but player is active. Skipping removal.");
+          return;
+        }
+
+        const session = roomManager.getSessionByPlayerId(pId);
+        if (session?.socketId) {
+          const clientSocket = io.sockets.get(session.socketId);
+          if (clientSocket && clientSocket.connected) {
+            player.isConnected = true;
+            logger.info({ roomId: expiredRoom.id, playerId: pId }, "Disconnect grace expired, but active socket found. Skipping removal.");
+            return;
+          }
+        }
+
+        logger.info({ roomId: expiredRoom.id, playerId: pId }, "Disconnect grace expired: removing player");
         expiredRoom.players = expiredRoom.players.filter((p) => p.id !== pId);
+        expiredRoom.disconnectTimers.delete(pId);
         io.to(expiredRoom.id).emit("room:playerLeft", { playerId: pId });
         const aborted = roomManager.checkAndAbortGameIfUnderflow(expiredRoom);
         if (aborted) {

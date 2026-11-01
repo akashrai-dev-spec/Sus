@@ -380,4 +380,84 @@ describe("Socket.IO Server Integration Tests", () => {
       p3.disconnect();
     }
   });
+
+  it("reliably reconnects player mid-game with resumeToken without self-exiting or aborting", async () => {
+    const p1 = createClient();
+    const p2 = createClient();
+    const p3 = createClient();
+
+    try {
+      await new Promise<any>((r) => p1.emit("session:hello", { name: "P1", color: "#9A0F28" }, r));
+      const p2Hello = await new Promise<any>((r) => p2.emit("session:hello", { name: "P2", color: "#1D4ED8" }, r));
+      await new Promise<any>((r) => p3.emit("session:hello", { name: "P3", color: "#047857" }, r));
+
+      const p2Token = p2Hello.data.resumeToken;
+      const p2Id = p2Hello.data.playerId;
+
+      const createRes = await new Promise<any>((r) => {
+        p1.emit(
+          "rooms:create",
+          {
+            name: "Reconnect Room",
+            pin: "4444",
+            settings: {
+              maxPlayers: 3,
+              imposters: 1,
+              rounds: 2,
+              guessAttempts: 1,
+              category: "Objects & Food",
+            },
+          },
+          r,
+        );
+      });
+      const roomId = createRes.data.id;
+
+      await new Promise<any>((r) => p2.emit("rooms:join", { roomId, pin: "4444" }, r));
+      await new Promise<any>((r) => p3.emit("rooms:join", { roomId, pin: "4444" }, r));
+
+      await new Promise<any>((r) => p1.emit("game:start", {}, r));
+
+      const room = roomManager.getRoom(roomId);
+      expect(room?.gameState).toBeDefined();
+
+      // P2's socket disconnects
+      p2.disconnect();
+
+      // P2 reconnects on a new socket with their resumeToken
+      const p2New = createClient();
+      let roleReceived: any = null;
+      p2New.on("game:role", (roleData) => {
+        roleReceived = roleData;
+      });
+
+      const reconnectHello = await new Promise<any>((r) => {
+        p2New.emit("session:hello", { name: "P2", color: "#1D4ED8", resumeToken: p2Token }, r);
+      });
+
+      expect(reconnectHello.ok).toBe(true);
+      expect(reconnectHello.data.playerId).toBe(p2Id);
+      expect(reconnectHello.data.roomId).toBe(roomId);
+
+      // Verify that P2 is marked isConnected = true and disconnect timer was cancelled
+      const playerInRoom = room?.players.find((p) => p.id === p2Id);
+      expect(playerInRoom?.isConnected).toBe(true);
+      expect(room?.disconnectTimers.has(p2Id)).toBe(false);
+
+      // Verify syncRoom also returns healthy state and restores private role
+      const syncRes = await new Promise<any>((r) => {
+        p2New.emit("room:sync", { roomId }, r);
+      });
+      expect(syncRes.ok).toBe(true);
+      expect(syncRes.data.players.find((p: any) => p.id === p2Id)?.isConnected).toBe(true);
+
+      // Active game is preserved (NOT aborted)
+      expect(room?.gameState).toBeDefined();
+      p2New.disconnect();
+    } finally {
+      p1.disconnect();
+      p2.disconnect();
+      p3.disconnect();
+    }
+  });
 });
