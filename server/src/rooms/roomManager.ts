@@ -18,6 +18,7 @@ export interface SessionInfo {
 export interface Room {
   id: string;
   name: string;
+  pin: string;
   pinHash: string;
   settings: GameSettings;
   hostId: string;
@@ -25,6 +26,20 @@ export interface Room {
   gameState?: GameState;
   emptyTimer?: NodeJS.Timeout;
   disconnectTimers: Map<string, NodeJS.Timeout>;
+}
+
+export function ensureUniqueName(existingNames: string[], requestedName: string): string {
+  const clean = requestedName.trim() || "Player";
+  const lowerExisting = new Set(existingNames.map((n) => n.trim().toLowerCase()));
+  if (!lowerExisting.has(clean.toLowerCase())) {
+    return clean;
+  }
+
+  let counter = 2;
+  while (lowerExisting.has(`${clean.toLowerCase()} ${counter}`)) {
+    counter++;
+  }
+  return `${clean} ${counter}`;
 }
 
 export class RoomManager {
@@ -72,26 +87,33 @@ export class RoomManager {
   updateProfile(socketId: string, name: string, color: string): SessionInfo | undefined {
     const session = this.getSessionBySocket(socketId);
     if (!session) return undefined;
-    session.name = name;
+
+    let targetName = name.trim() || session.name;
     session.color = color;
 
     if (session.roomId) {
       const room = this.rooms.get(session.roomId);
       if (room) {
+        const otherNames = room.players
+          .filter((pl) => pl.id !== session.playerId)
+          .map((pl) => pl.name);
+        targetName = ensureUniqueName(otherNames, targetName);
+
         const p = room.players.find((pl) => pl.id === session.playerId);
         if (p) {
-          p.name = name;
+          p.name = targetName;
           p.color = color;
         }
         if (room.gameState) {
           const gp = room.gameState.players.find((pl) => pl.id === session.playerId);
           if (gp) {
-            gp.name = name;
+            gp.name = targetName;
             gp.color = color;
           }
         }
       }
     }
+    session.name = targetName;
     return session;
   }
 
@@ -133,6 +155,7 @@ export class RoomManager {
     const room: Room = {
       id: roomId,
       name: params.name.trim() || `${session.name}'s room`,
+      pin: params.pin,
       pinHash,
       settings: params.settings,
       hostId: session.playerId,
@@ -187,9 +210,14 @@ export class RoomManager {
         throw new Error("GAME_ALREADY_IN_PROGRESS");
       }
 
+      // Ensure every player in the room has a distinct, unique name
+      const existingNames = room.players.map((p) => p.name);
+      const uniqueName = ensureUniqueName(existingNames, session.name);
+      session.name = uniqueName;
+
       const newPlayer: GamePlayer & { resumeToken: string; socketId: string } = {
         id: session.playerId,
-        name: session.name,
+        name: uniqueName,
         color: session.color,
         isAlive: true,
         isHost: room.players.length === 0,
@@ -271,6 +299,7 @@ export class RoomManager {
     return {
       id: room.id,
       name: room.name,
+      pin: room.pin,
       max: room.settings.maxPlayers,
       hostId: room.hostId,
       players: room.players.map((p) => {

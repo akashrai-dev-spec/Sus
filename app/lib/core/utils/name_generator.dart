@@ -27,6 +27,24 @@ class NameGenerator {
     'Wily',
     'Brave',
     'Swift',
+    'Clever',
+    'Fierce',
+    'Noble',
+    'Shy',
+    'Shadow',
+    'Mighty',
+    'Zesty',
+    'Chill',
+    'Breezy',
+    'Golden',
+    'Silent',
+    'Daring',
+    'Spicy',
+    'Frosty',
+    'Hyper',
+    'Curious',
+    'Sunny',
+    'Electric',
   ];
 
   static const List<String> animals = [
@@ -42,13 +60,32 @@ class NameGenerator {
     'Hare',
     'Falcon',
     'Badger',
+    'Wolf',
+    'Raven',
+    'Koala',
+    'Tiger',
+    'Hawk',
+    'Viper',
+    'Beaver',
+    'Ferret',
+    'Cheetah',
+    'Panther',
+    'Owl',
+    'Bison',
+    'Eagle',
+    'Dolphin',
+    'Bear',
+    'Penguin',
+    'Jaguar',
+    'Raccoon',
   ];
 
   static String generateRandomName() {
     final rand = math.Random();
     final adj = adjectives[rand.nextInt(adjectives.length)];
     final ani = animals[rand.nextInt(animals.length)];
-    return '$adj $ani';
+    final num = 10 + rand.nextInt(90);
+    return '$adj $ani $num';
   }
 
   static String getRandomColor() {
