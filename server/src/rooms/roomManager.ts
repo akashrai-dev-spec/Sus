@@ -37,11 +37,18 @@ export function ensureUniqueName(existingNames: string[], requestedName: string)
     return clean;
   }
 
+  const match = clean.match(/^(.*?)\s+(\d+)$/);
+  let base = clean;
   let counter = 2;
-  while (lowerExisting.has(`${clean.toLowerCase()} ${counter}`)) {
+  if (match) {
+    base = match[1];
+    counter = parseInt(match[2], 10) + 1;
+  }
+
+  while (lowerExisting.has(`${base.toLowerCase()} ${counter}`)) {
     counter++;
   }
-  return `${clean} ${counter}`;
+  return `${base} ${counter}`;
 }
 
 export class RoomManager {
@@ -186,10 +193,37 @@ export class RoomManager {
     return list;
   }
 
+  isRoomNameTaken(name: string): boolean {
+    const target = name.trim().toLowerCase();
+    if (!target) return false;
+    for (const room of this.rooms.values()) {
+      if (room.name.trim().toLowerCase() === target) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  suggestUniqueRoomName(requestedName?: string): string {
+    const base = requestedName?.trim() || "Sus Party";
+    const existingNames = Array.from(this.rooms.values()).map((r) => r.name);
+    return ensureUniqueName(existingNames, base);
+  }
+
   async createRoom(
     session: SessionInfo,
     params: { name: string; pin: string; settings: GameSettings },
   ): Promise<Room> {
+    const requestedName = params.name.trim() || `${session.name}'s room`;
+
+    if (this.isRoomNameTaken(requestedName)) {
+      const suggestedName = this.suggestUniqueRoomName(requestedName);
+      const err = new Error("ROOM_NAME_TAKEN");
+      (err as any).code = "ROOM_NAME_TAKEN";
+      (err as any).suggestedName = suggestedName;
+      throw err;
+    }
+
     const pinHash = await argon2.hash(params.pin);
     const roomId = `room-${uuidv4().substring(0, 8)}`;
 
@@ -209,7 +243,7 @@ export class RoomManager {
 
     const room: Room = {
       id: roomId,
-      name: params.name.trim() || `${session.name}'s room`,
+      name: requestedName,
       pin: params.pin,
       pinHash,
       settings: params.settings,
@@ -325,13 +359,66 @@ export class RoomManager {
     }
 
     if (room.players.length === 0) {
+      if (room.emptyTimer) {
+        clearTimeout(room.emptyTimer);
+      }
       room.emptyTimer = setTimeout(() => {
+        for (const t of room.disconnectTimers.values()) {
+          clearTimeout(t);
+        }
+        room.disconnectTimers.clear();
+        for (const sess of this.sessions.values()) {
+          if (sess.roomId === room.id) {
+            sess.roomId = undefined;
+          }
+        }
         this.rooms.delete(room.id);
         logger.info({ roomId: room.id }, "Empty room cleaned up");
       }, config.emptyRoomRetentionMs);
     }
 
     return { room, leftPlayerId, newHostId };
+  }
+
+  removeDisconnectedPlayer(room: Room, playerId: string): { newHostId?: string; wasAborted: boolean } {
+    const timer = room.disconnectTimers.get(playerId);
+    if (timer) {
+      clearTimeout(timer);
+      room.disconnectTimers.delete(playerId);
+    }
+    room.players = room.players.filter((p) => p.id !== playerId);
+
+    let newHostId: string | undefined;
+    if (room.hostId === playerId) {
+      const nextHost = room.players.find((p) => p.isConnected !== false);
+      if (nextHost) {
+        nextHost.isHost = true;
+        room.hostId = nextHost.id;
+        newHostId = nextHost.id;
+      }
+    }
+
+    if (room.players.length === 0) {
+      if (room.emptyTimer) {
+        clearTimeout(room.emptyTimer);
+      }
+      room.emptyTimer = setTimeout(() => {
+        for (const t of room.disconnectTimers.values()) {
+          clearTimeout(t);
+        }
+        room.disconnectTimers.clear();
+        for (const sess of this.sessions.values()) {
+          if (sess.roomId === room.id) {
+            sess.roomId = undefined;
+          }
+        }
+        this.rooms.delete(room.id);
+        logger.info({ roomId: room.id }, "Empty room cleaned up");
+      }, config.emptyRoomRetentionMs);
+    }
+
+    const wasAborted = this.checkAndAbortGameIfUnderflow(room);
+    return { newHostId, wasAborted };
   }
 
   kickPlayer(

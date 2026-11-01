@@ -288,8 +288,28 @@ export function useGameSocket() {
             notifyStateChange();
             resolve(res.data);
           } else {
-            const errMsg = res?.message || res?.error?.message || res?.code || "Failed to create room";
-            reject(new Error(errMsg));
+            const errObj = res?.error || res || {};
+            const errMsg = errObj.message || errObj.code || "Failed to create room";
+            const err: any = new Error(errMsg);
+            err.code = errObj.code;
+            err.suggestedName = errObj.suggestedName;
+            reject(err);
+          }
+        });
+      });
+    },
+    []
+  );
+
+  const suggestRoomName = useCallback(
+    async (baseName?: string): Promise<string> => {
+      const s = socketRef.current || getGameSocket();
+      return new Promise((resolve) => {
+        s.emit("rooms:suggest-name", { baseName }, (res: any) => {
+          if (res?.ok && res.data?.suggestedName) {
+            resolve(res.data.suggestedName);
+          } else {
+            resolve(baseName || "Sus Party");
           }
         });
       });
@@ -424,6 +444,7 @@ export function useGameSocket() {
     syncRoom,
     listRooms,
     createRoom,
+    suggestRoomName,
     joinRoom,
     leaveRoom,
     startGame,

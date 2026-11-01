@@ -26,6 +26,7 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
 
   // Online fields
   late TextEditingController _roomNameController;
+  List<String> _occupiedRoomNames = [];
   late TextEditingController _pinController;
   late TextEditingController _customWordController;
   late TextEditingController _customCategoryController;
@@ -68,7 +69,9 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
   void initState() {
     super.initState();
     final profile = ref.read(userProfileProvider);
-    _roomNameController = TextEditingController(text: '${profile.name}’s room');
+    final initialName = "${profile.name}'s room";
+    _roomNameController = TextEditingController(text: initialName);
+    _checkAndSuggestRoomName(initialName);
     final initialPin = (1000 + math.Random().nextInt(9000)).toString();
     _pinController = TextEditingController(text: initialPin);
     _customWordController = TextEditingController();
@@ -84,6 +87,33 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
       );
     }
     _clampImposters();
+  }
+
+  Future<void> _checkAndSuggestRoomName(String baseName) async {
+    try {
+      final controller = ref.read(onlineGameControllerProvider.notifier);
+      final res = await controller.listRooms();
+      if (!mounted) return;
+      if (res['ok'] == true && res['data'] is List) {
+        final existing = (res['data'] as List)
+            .map((r) => ((r as Map)['name'] as String? ?? '').trim().toLowerCase())
+            .where((n) => n.isNotEmpty)
+            .toList();
+        setState(() {
+          _occupiedRoomNames = existing;
+        });
+        if (existing.contains(baseName.trim().toLowerCase())) {
+          final sugRes = await controller.suggestRoomName(baseName);
+          if (!mounted) return;
+          if (sugRes['ok'] == true && sugRes['data']?['suggestedName'] != null) {
+            final suggested = sugRes['data']['suggestedName'] as String;
+            setState(() {
+              _roomNameController.text = suggested;
+            });
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -275,6 +305,15 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
       }
     } else {
       if (mounted) {
+        final code = res['code'] as String? ?? (res['error'] as Map<String, dynamic>?)?['code'] as String?;
+        final suggested = (res['suggestedName'] as String?) ?? (res['error'] as Map<String, dynamic>?)?['suggestedName'] as String?;
+        if (code == 'ROOM_NAME_TAKEN' && suggested != null) {
+          setState(() {
+            _roomNameController.text = suggested;
+          });
+          AppToast.show(context, 'This name is already occupied. Changed to "$suggested".');
+          return;
+        }
         AppToast.show(context, (res['message'] as String?) ?? 'Failed to create room');
       }
     }
@@ -622,21 +661,98 @@ class _CreateGameScreenState extends ConsumerState<CreateGameScreen> {
   }
 
   List<Widget> _buildOnlineFields(SusColors colors) {
+    final isOccupied = _occupiedRoomNames.contains(_roomNameController.text.trim().toLowerCase());
+
     return [
-      Text(
-        'Room name',
-        style: SusTypography.caption.copyWith(color: colors.mute),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Room name',
+            style: SusTypography.caption.copyWith(color: colors.mute),
+          ),
+          InkWell(
+            onTap: () async {
+              final controller = ref.read(onlineGameControllerProvider.notifier);
+              final res = await controller.suggestRoomName(_roomNameController.text.trim());
+              if (res['ok'] == true && res['data']?['suggestedName'] != null) {
+                setState(() {
+                  _roomNameController.text = res['data']['suggestedName'] as String;
+                });
+              }
+            },
+            child: Row(
+              children: [
+                Icon(Icons.refresh_rounded, size: 14, color: colors.crimsonBright),
+                const SizedBox(width: 4),
+                Text(
+                  'Suggest name',
+                  style: SusTypography.caption.copyWith(
+                    color: colors.crimsonBright,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
       const SizedBox(height: 6),
       TextField(
         controller: _roomNameController,
         maxLength: 25,
-        style: SusTypography.body.copyWith(color: colors.bone),
-        decoration: const InputDecoration(
+        style: SusTypography.body.copyWith(
+          color: isOccupied ? Colors.amber.shade200 : colors.bone,
+        ),
+        onChanged: (_) => setState(() {}),
+        decoration: InputDecoration(
           counterText: '',
           hintText: 'Enter room name...',
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: isOccupied ? Colors.amber.shade600 : colors.line,
+            ),
+          ),
         ),
       ),
+      if (isOccupied) ...[
+        const SizedBox(height: 6),
+        InkWell(
+          onTap: () async {
+            final controller = ref.read(onlineGameControllerProvider.notifier);
+            final res = await controller.suggestRoomName(_roomNameController.text.trim());
+            if (res['ok'] == true && res['data']?['suggestedName'] != null) {
+              setState(() {
+                _roomNameController.text = res['data']['suggestedName'] as String;
+              });
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline_rounded, size: 14, color: Colors.amber.shade300),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Name occupied. Tap to use an available suggestion.',
+                    style: SusTypography.caption.copyWith(
+                      color: Colors.amber.shade300,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
       const SizedBox(height: 16),
       Text(
         '4-digit PIN',
