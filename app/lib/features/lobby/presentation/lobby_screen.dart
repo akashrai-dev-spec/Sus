@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/sus_colors.dart';
@@ -151,10 +152,89 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              '$playerCount/$maxPlayers players · PIN ${room['pin'] ?? '••••'}',
+              '$playerCount/$maxPlayers players',
               style: SusTypography.body.copyWith(color: colors.mute),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+
+            // Room Code & PIN Share Card
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: colors.panel,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: colors.line),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ROOM CODE',
+                          style: SusTypography.caption.copyWith(
+                            color: colors.mute,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.roomId,
+                          style: SusTypography.body.copyWith(
+                            color: colors.bone,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    height: 28,
+                    width: 1,
+                    color: colors.line,
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ROOM PIN',
+                          style: SusTypography.caption.copyWith(
+                            color: colors.mute,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          (room['pin'] as String?) ?? '••••',
+                          style: SusTypography.body.copyWith(
+                            color: colors.crimson,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.copy_rounded, size: 20, color: colors.mute),
+                    tooltip: 'Copy Room Code & PIN',
+                    onPressed: () {
+                      final pin = (room['pin'] as String?) ?? '';
+                      Clipboard.setData(ClipboardData(
+                        text: 'Join my Sus game!\nRoom Code: ${widget.roomId}\nPIN: $pin',
+                      ));
+                      AppToast.show(context, 'Room code & PIN copied!');
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
 
             // Chips
             Wrap(

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { getGameSocket } from "./socketClient";
 import type { Socket } from "socket.io-client";
+import { generateRandomName, generateRandomColor } from "../utils/nameGenerator";
 
 export interface PlayerProfile {
   id: string;
@@ -41,8 +42,16 @@ function initGlobalSocketListeners(s: Socket) {
   isSocketInitialized = true;
 
   function doHello() {
-    const savedName = localStorage.getItem("sus_name") || "Sneaky Fox";
-    const savedColor = localStorage.getItem("sus_color") || "#9a0f28";
+    let savedName = localStorage.getItem("sus_name");
+    if (!savedName || savedName === "Sneaky Fox") {
+      savedName = generateRandomName();
+      localStorage.setItem("sus_name", savedName);
+    }
+    let savedColor = localStorage.getItem("sus_color");
+    if (!savedColor) {
+      savedColor = generateRandomColor();
+      localStorage.setItem("sus_color", savedColor);
+    }
     const resumeToken = localStorage.getItem("sus_resume_token") || undefined;
 
     s.emit(
@@ -50,10 +59,12 @@ function initGlobalSocketListeners(s: Socket) {
       { name: savedName, color: savedColor, resumeToken },
       (res: any) => {
         if (res?.ok && res.data) {
+          const effectiveName = res.data.name || savedName;
+          const effectiveColor = res.data.color || savedColor;
           sharedProfile = {
             id: res.data.playerId,
-            name: savedName,
-            color: savedColor,
+            name: effectiveName,
+            color: effectiveColor,
             resumeToken: res.data.resumeToken,
           };
           if (res.data.resumeToken) {
@@ -62,11 +73,31 @@ function initGlobalSocketListeners(s: Socket) {
           if (res.data.playerId) {
             localStorage.setItem("sus_player_id", res.data.playerId);
           }
+          if (effectiveName !== savedName) {
+            localStorage.setItem("sus_name", effectiveName);
+          }
           notifyStateChange();
         }
       }
     );
   }
+
+  s.on("session:info", (info: any) => {
+    if (info) {
+      if (info.name) localStorage.setItem("sus_name", info.name);
+      if (info.color) localStorage.setItem("sus_color", info.color);
+      if (info.resumeToken) localStorage.setItem("sus_resume_token", info.resumeToken);
+      if (info.playerId) localStorage.setItem("sus_player_id", info.playerId);
+
+      sharedProfile = {
+        id: info.playerId || sharedProfile?.id || "",
+        name: info.name || sharedProfile?.name || "",
+        color: info.color || sharedProfile?.color || "#9a0f28",
+        resumeToken: info.resumeToken || sharedProfile?.resumeToken,
+      };
+      notifyStateChange();
+    }
+  });
 
   s.on("connect", () => {
     sharedIsConnected = true;
@@ -86,6 +117,13 @@ function initGlobalSocketListeners(s: Socket) {
 
   s.on("room:state", (state: any) => {
     sharedRoomState = state;
+    if (state?.players && sharedProfile?.id) {
+      const me = state.players.find((p: any) => p.id === sharedProfile?.id);
+      if (me && me.name && me.name !== sharedProfile.name) {
+        sharedProfile = { ...sharedProfile, name: me.name };
+        localStorage.setItem("sus_name", me.name);
+      }
+    }
     notifyStateChange();
   });
 

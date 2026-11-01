@@ -164,6 +164,13 @@ export function registerSocketHandlers(io: Namespace, roomManager: RoomManager):
         const state = roomManager.getPublicRoomState(room);
         safeAck(ack, true, state);
 
+        socket.emit("session:info", {
+          playerId: session.playerId,
+          name: session.name,
+          color: session.color,
+          resumeToken: session.resumeToken,
+        });
+
         io.to(room.id).emit("room:state", state);
         socket.to(room.id).emit("room:playerJoined", {
           id: session.playerId,

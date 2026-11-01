@@ -271,8 +271,27 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
       });
     }
 
+    final players = (room['players'] as List? ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+
+    final myPlayerId = online.playerId ??
+        players.firstWhere(
+          (p) => p['name'] == profile.name,
+          orElse: () => <String, dynamic>{},
+        )['id'] as String?;
+
+    final myPlayer = players.firstWhere(
+      (p) => (myPlayerId != null && p['id'] == myPlayerId) || p['name'] == profile.name,
+      orElse: () => <String, dynamic>{},
+    );
+
     // Role reveal view
-    if (phase == 'roleReveal' && !_hasSeenRole) {
+    if (phase == 'roleReveal') {
+      final isMyReady = (myPlayer['isReady'] as bool? ?? false) || _hasSeenRole;
+      final readyPlayers = players.where((p) => p['isReady'] == true).toList();
+      final waitingPlayers = players.where((p) => p['isReady'] != true).toList();
+
       return Scaffold(
         appBar: AppHeader(
           playerName: profile.name,
@@ -298,13 +317,122 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
                 secretWord: online.mySecretWord,
               ),
               const Spacer(),
-              SwipeToConfirm(
-                label: 'I’ve seen it',
-                onConfirm: () async {
-                  setState(() => _hasSeenRole = true);
-                  await ref.read(onlineGameControllerProvider.notifier).markReady();
-                },
-              ),
+              if (isMyReady) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: colors.panel,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'You have confirmed your role',
+                            style: SusTypography.body.copyWith(
+                              color: const Color(0xFF10B981),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        waitingPlayers.isEmpty
+                            ? 'Everyone is ready! Starting discussion...'
+                            : 'Waiting for ${waitingPlayers.map((p) => p['name']).join(', ')} to confirm...',
+                        style: SusTypography.body.copyWith(
+                          color: colors.bone,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${readyPlayers.length} of ${players.length} players ready. You can still hold above to peek.',
+                        style: SusTypography.caption.copyWith(color: colors.mute),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        alignment: WrapAlignment.center,
+                        children: players.map((p) {
+                          final isPReady = p['isReady'] as bool? ?? false;
+                          final pName = p['name'] as String? ?? 'Player';
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isPReady
+                                  ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                  : colors.ink,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isPReady
+                                    ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                                    : colors.line,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  pName,
+                                  style: SusTypography.caption.copyWith(
+                                    color: isPReady ? colors.bone : colors.mute,
+                                    fontWeight: isPReady ? FontWeight.w700 : FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                if (isPReady)
+                                  const Icon(Icons.check, size: 14, color: Color(0xFF10B981))
+                                else
+                                  Text(
+                                    'Waiting',
+                                    style: SusTypography.caption.copyWith(
+                                      color: const Color(0xFFF59E0B),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                if (readyPlayers.isNotEmpty) ...[
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        '${readyPlayers.length}/${players.length} players ready · Waiting for you',
+                        style: SusTypography.caption.copyWith(
+                          color: colors.mute,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                SwipeToConfirm(
+                  label: 'I’ve seen it',
+                  onConfirm: () async {
+                    setState(() => _hasSeenRole = true);
+                    await ref.read(onlineGameControllerProvider.notifier).markReady();
+                  },
+                ),
+              ],
               const SizedBox(height: 20),
             ],
           ),
@@ -313,10 +441,6 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
     }
 
     // Active discussion / accusation view
-    final players = (room['players'] as List? ?? [])
-        .map((e) => Map<String, dynamic>.from(e as Map))
-        .toList();
-
     final currentTurn = room['currentTurn'] as Map<String, dynamic>?;
     final speakerId = currentTurn?['speakerId'] as String?;
     final roundNumber = currentTurn?['round'] ?? 1;
@@ -324,16 +448,6 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
     final totalRounds = settings['rounds'] ?? 2;
     final isFinalVote = room['isFinalVote'] as bool? ?? false;
 
-    final myPlayerId = online.playerId ??
-        players.firstWhere(
-          (p) => p['name'] == profile.name,
-          orElse: () => <String, dynamic>{},
-        )['id'] as String?;
-
-    final myPlayer = players.firstWhere(
-      (p) => (myPlayerId != null && p['id'] == myPlayerId) || p['name'] == profile.name,
-      orElse: () => <String, dynamic>{},
-    );
     final isAlive = myPlayer['isAlive'] as bool? ?? true;
     final usedAccusation = myPlayer['usedAccusation'] as bool? ?? false;
     final isMyTurn = (speakerId != null && (speakerId == myPlayerId || speakerId == myPlayer['id'])) && isAlive;

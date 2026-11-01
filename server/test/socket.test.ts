@@ -77,6 +77,7 @@ describe("Socket.IO Server Integration Tests", () => {
         );
       });
       expect(createRes.ok).toBe(true);
+      expect(createRes.data.pin).toBe("1234");
       const roomId = createRes.data.id;
 
       // 4. Guest joins room
@@ -84,7 +85,20 @@ describe("Socket.IO Server Integration Tests", () => {
         guest.emit("rooms:join", { roomId, pin: "1234" }, resolve);
       });
       expect(joinRes.ok).toBe(true);
+      expect(joinRes.data.pin).toBe("1234");
       expect(joinRes.data.players.length).toBe(2);
+
+      // 5. Another guest joins with identical name as host ("Host Player") -> should be disambiguated to "Host Player 2"
+      const duplicateGuest = createClient();
+      await new Promise<any>((resolve) => {
+        duplicateGuest.emit("session:hello", { name: "Host Player", color: "#4D7C0F" }, resolve);
+      });
+      const dupJoinRes = await new Promise<any>((resolve) => {
+        duplicateGuest.emit("rooms:join", { roomId, pin: "1234" }, resolve);
+      });
+      expect(dupJoinRes.ok).toBe(true);
+      expect(dupJoinRes.data.players.some((p: any) => p.name === "Host Player 2")).toBe(true);
+      duplicateGuest.disconnect();
     } finally {
       host.disconnect();
       guest.disconnect();

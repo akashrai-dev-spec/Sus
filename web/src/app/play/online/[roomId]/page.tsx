@@ -16,6 +16,8 @@ import {
   AlertTriangle,
   Play,
   CheckCircle,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useGameSocket } from "@/lib/socket/useGameSocket";
 import { sounds } from "@/lib/audio/soundEffects";
@@ -49,6 +51,7 @@ export default function OnlineGameRoomPage() {
   const [isRevealed, setIsRevealed] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [syncFailed, setSyncFailed] = useState(false);
+  const [copiedInvite, setCopiedInvite] = useState(false);
 
   // Accusation modal
   const [accuseModalOpen, setAccuseModalOpen] = useState(false);
@@ -139,6 +142,9 @@ export default function OnlineGameRoomPage() {
   const currentSpeaker = players.find((p: any) => p.id === currentSpeakerId);
 
   const isAlive = myPlayer ? myPlayer.isAlive !== false : true;
+  const isMyReady = Boolean(myPlayer?.isReady);
+  const readyPlayers = players.filter((p: any) => p.isReady);
+  const waitingPlayers = players.filter((p: any) => !p.isReady);
   const isMyTurn = Boolean(
     currentSpeakerId &&
       (currentSpeakerId === myPlayerId || (myPlayer && currentSpeakerId === myPlayer.id)) &&
@@ -214,7 +220,7 @@ export default function OnlineGameRoomPage() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-panel border border-line text-xs font-bold text-bone">
             <Lock className="w-3.5 h-3.5 text-amber-400" />
-            <span>PIN: {roomState.pin}</span>
+            <span>PIN: {roomState.pin || "••••"}</span>
           </div>
           <button
             onClick={() => {
@@ -232,16 +238,51 @@ export default function OnlineGameRoomPage() {
       {!isPlaying && (
         <div className="flex-1 flex flex-col justify-between py-4">
           <div>
-            <div className="text-center mb-8">
+            <div className="text-center mb-6">
               <span className="text-xs uppercase font-extrabold tracking-widest text-crimson-bright">
                 Multiplayer Lobby
               </span>
               <h1 className="text-3xl sm:text-4xl font-black text-white mt-1">
                 {roomState.name}
               </h1>
-              <p className="text-sm text-mute mt-1.5">
-                Share the 4-digit PIN <b>{roomState.pin}</b> with friends to join.
-              </p>
+            </div>
+
+            {/* Room Code & PIN Share Card */}
+            <div className="max-w-md mx-auto mb-6 p-4 rounded-2xl bg-panel border border-line shadow-xl">
+              <div className="grid grid-cols-2 gap-3 text-center mb-3">
+                <div className="p-3 rounded-xl bg-ink-deep border border-line">
+                  <span className="text-[10px] uppercase font-bold text-mute block mb-0.5">Room ID</span>
+                  <span className="font-mono font-black text-sm text-white select-all">{roomState.id}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-ink-deep border border-line">
+                  <span className="text-[10px] uppercase font-bold text-mute block mb-0.5">Room PIN</span>
+                  <span className="font-mono font-black text-base text-amber-400 tracking-widest select-all">
+                    {roomState.pin || "••••"}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  const text = `Join my Sus game!\nRoom Code: ${roomState.id}\nPIN: ${roomState.pin || ""}\nPlay at: ${window.location.origin}/play/rooms`;
+                  navigator.clipboard.writeText(text);
+                  setCopiedInvite(true);
+                  setTimeout(() => setCopiedInvite(false), 2500);
+                }}
+                className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-line text-bone font-bold text-xs flex items-center justify-center gap-2 transition-all button-press"
+              >
+                {copiedInvite ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    <span className="text-emerald-400">Invite & PIN Copied to Clipboard!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-mute" />
+                    <span>Copy Room Code & PIN to Invite Friends</span>
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Room Settings Chips */}
@@ -398,15 +439,70 @@ export default function OnlineGameRoomPage() {
               </div>
 
               <div className="pt-6">
-                <button
-                  onClick={() => {
-                    sounds.playTick();
-                    setReady();
-                  }}
-                  className="w-full py-4 rounded-2xl bg-crimson hover:bg-crimson-bright text-white font-extrabold text-lg shadow-xl shadow-crimson/30 transition-all button-press"
-                >
-                  I’ve seen it (Ready) ›››
-                </button>
+                {isMyReady ? (
+                  <div className="rounded-2xl bg-panel border border-emerald-500/40 p-5 shadow-lg shadow-emerald-950/20 text-center animate-in fade-in">
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-extrabold text-sm mb-3">
+                      <Check className="w-4 h-4 text-emerald-400" />
+                      <span>You have confirmed your role</span>
+                    </div>
+
+                    <h4 className="text-base font-black text-white mb-1">
+                      {waitingPlayers.length === 0
+                        ? "Everyone is ready! Starting discussion..."
+                        : `Waiting for ${waitingPlayers.map((p: any) => p.name).join(", ")} to confirm...`}
+                    </h4>
+                    <p className="text-xs text-mute mb-4">
+                      {readyPlayers.length} of {players.length} players confirmed. You can still press and hold above to peek at your role.
+                    </p>
+
+                    {/* Player ready status pills */}
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      {players.map((p: any) => {
+                        const isReady = p.isReady;
+                        return (
+                          <div
+                            key={p.id}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                              isReady
+                                ? "bg-emerald-950/30 border-emerald-500/40 text-emerald-300"
+                                : "bg-ink-deep border-line text-mute animate-pulse"
+                            }`}
+                          >
+                            <span
+                              className="w-2.5 h-2.5 rounded-full"
+                              style={{ backgroundColor: p.color || "#9a0f28" }}
+                            />
+                            <span>{p.name}</span>
+                            {isReady ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : (
+                              <span className="text-[10px] text-amber-400 font-black">Waiting</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <button
+                      onClick={() => {
+                        sounds.playTick();
+                        setReady();
+                      }}
+                      className="w-full py-4 rounded-2xl bg-crimson hover:bg-crimson-bright text-white font-extrabold text-lg shadow-xl shadow-crimson/30 transition-all button-press"
+                    >
+                      I’ve seen it (Ready) ›››
+                    </button>
+                    {readyPlayers.length > 0 && (
+                      <p className="text-center text-xs text-mute mt-2.5">
+                        <span className="text-emerald-400 font-bold">{readyPlayers.length} of {players.length} ready</span>
+                        {" · "}
+                        Waiting for you and {waitingPlayers.filter((p: any) => p.id !== myPlayer?.id).map((p: any) => p.name).join(", ") || "you"}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
